@@ -258,7 +258,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/manga/:id", async (req, res) => {
     try {
       const { id } = req.params;
-      const result = await mangaDxService.getMangaById(id);
+      
+      // Handle MangaPlus IDs (start with 'mp-')
+      if (id.startsWith('mp-')) {
+        return res.status(404).json({ message: "MangaPlus support not yet implemented" });
+      }
+      
+      const result = await mangaDxService.getMangaById(id, ['cover_art', 'author', 'artist']);
       const manga = result.data;
 
       const originalCoverUrl = mangaDxService.extractCoverArt(manga);
@@ -285,7 +291,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.json(transformedManga);
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error(`Error fetching manga ${req.params.id}:`, error.message);
+      
+      // Provide better error responses
+      if (error.message.includes('404')) {
+        res.status(404).json({ message: "Manga not found" });
+      } else {
+        res.status(500).json({ message: "Failed to fetch manga details" });
+      }
     }
   });
 
@@ -825,6 +838,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Helper function to serve placeholder image
   async function servePlaceholderImage(res: any, text: string = "No Cover") {
     try {
+      // First try to serve the stock manga image from public directory
+      const fs = await import('fs');
+      const path = await import('path');
+      const stockImagePath = path.resolve(import.meta.dirname, '..', 'client', 'public', 'stock-manga.jpg');
+      
+      console.log(`Trying to serve stock image from: ${stockImagePath}`);
+      
+      if (fs.existsSync(stockImagePath)) {
+        console.log('Stock image found, serving it...');
+        const imageBuffer = fs.readFileSync(stockImagePath);
+        console.log(`Serving stock image fallback: ${stockImagePath}`);
+        res.setHeader('Content-Type', 'image/jpeg');
+        res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.send(imageBuffer);
+      }
+      
+      // Fallback to placeholder URL if stock image doesn't exist
       const placeholderUrl = `https://via.placeholder.com/400x600/1a1a1a/ffffff?text=${encodeURIComponent(text)}`;
       const placeholderResponse = await fetch(placeholderUrl);
       

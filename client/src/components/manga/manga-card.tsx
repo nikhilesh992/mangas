@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Manga } from "@/lib/types";
 import { analytics } from "@/lib/analytics";
-// import placeholderImage from "../../assets/stock_images/manga_book_placehold_a21b69fb.jpg";
-const placeholderImage = "/placeholder-manga.jpg"; // Use a simple placeholder path
+const placeholderImage = "/stock-manga.jpg";
 
 interface MangaCardProps {
   manga: Manga;
