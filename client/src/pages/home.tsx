@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MangaCard } from "@/components/manga/manga-card";
-// import { AdSlot } from "@/components/ads/ad-slot"; // Disabled due to database not configured
+import { AdSlot } from "@/components/ads/ad-slot";
 import { mangaApi } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -280,8 +280,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Ad Slot - Temporarily disabled due to database not being configured */}
-          {/* <AdSlot position="homepage_top" /> */}
+          {/* Ad Slot - Homepage Top */}
+          <AdSlot position="homepage_top" />
 
           {/* Results */}
           {error && (
@@ -397,6 +397,9 @@ export default function Home() {
                   </Button>
                 </div>
               )}
+
+              {/* Ad Slot - Homepage Bottom */}
+              <AdSlot position="homepage_bottom" />
             </>
           )}
         </div>
