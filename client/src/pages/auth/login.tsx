@@ -49,7 +49,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4" data-testid="login-page">
+    <div className="flex-1 flex items-center justify-center px-4" data-testid="login-page">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold gradient-hero bg-clip-text text-transparent">

@@ -105,7 +105,7 @@ export default function Home() {
   const totalPages = Math.ceil(total / (searchParams.limit || 20));
 
   return (
-    <div className="min-h-screen bg-background" data-testid="home-page">
+    <div className="flex-1 bg-background" data-testid="home-page">
 
       {/* Main Content Section */}
       <div className="container mx-auto px-4 py-8">
