@@ -106,27 +106,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background" data-testid="home-page">
-      {/* Search Bar Section */}
-      <div className="bg-background border-b border-border">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex justify-center">
-            <div className="relative w-full max-w-2xl">
-              <Input
-                type="search"
-                placeholder="Search for manga titles..."
-                value={searchParams.search || ""}
-                onChange={(e) => handleFilterChange("search", e.target.value || undefined)}
-                className="w-full h-12 pl-10 bg-input border-border text-foreground"
-                data-testid="search-input"
-              />
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
-                <div className="w-4 h-4 border-2 border-muted-foreground rounded-full"></div>
-                <div className="w-1.5 h-1.5 bg-muted-foreground rotate-45 absolute top-2.5 left-2.5"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Main Content Section */}
       <div className="container mx-auto px-4 py-8">

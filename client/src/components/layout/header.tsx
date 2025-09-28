@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, User, LogOut } from "lucide-react";
+import { Menu, X, User, LogOut, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -17,6 +17,10 @@ export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isAuthenticated, isAdmin, user, logout } = useAuth();
   const isMobile = useIsMobile();
+  
+  // Show search on home pages
+  const isHomePage = location === "/" || location === "/home";
+  const [searchValue, setSearchValue] = useState("");
 
 
 
@@ -64,6 +68,20 @@ export function Header() {
           </div>
 
           <div className="flex items-center space-x-4">
+            {/* Search Bar - Desktop */}
+            {isHomePage && !isMobile && (
+              <div className="relative">
+                <Input
+                  type="search"
+                  placeholder="Search for manga titles..."
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  className="w-64 h-9 pl-9 bg-input border-border text-foreground"
+                  data-testid="search-input"
+                />
+                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              </div>
+            )}
 
             {isAuthenticated ? (
               <DropdownMenu>
@@ -124,6 +142,20 @@ export function Header() {
         {/* Mobile menu */}
         {isMobile && isMenuOpen && (
           <div className="mt-4 py-4 border-t border-border" data-testid="mobile-menu">
+            {/* Search Bar - Mobile */}
+            {isHomePage && (
+              <div className="relative mb-4">
+                <Input
+                  type="search"
+                  placeholder="Search for manga titles..."
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  className="w-full h-10 pl-9 bg-input border-border text-foreground"
+                  data-testid="search-input-mobile"
+                />
+                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              </div>
+            )}
             <nav className="flex flex-col space-y-3">
               <Link 
                 href="/" 

@@ -4,25 +4,43 @@
 @tailwind utilities;
 
 :root {
-  --background: hsl(0, 0%, 3%);
-  --foreground: hsl(0, 0%, 98%);
-  --card: hsl(0, 0%, 5%);
-  --card-foreground: hsl(0, 0%, 98%);
-  --popover: hsl(0, 0%, 5%);
-  --popover-foreground: hsl(0, 0%, 98%);
-  --primary: hsl(265, 91%, 63%);
+  /* Surface layers - Neo-noir depth system */
+  --background: hsl(222, 28%, 8%);
+  --foreground: hsl(220, 20%, 92%);
+  --card: hsl(222, 24%, 12%);
+  --card-foreground: hsl(220, 20%, 92%);
+  --popover: hsl(222, 24%, 12%);
+  --popover-foreground: hsl(220, 20%, 92%);
+  
+  /* Action colors - Distinct button states */
+  --primary: hsl(266, 84%, 62%);
   --primary-foreground: hsl(0, 0%, 98%);
-  --secondary: hsl(0, 0%, 10%);
-  --secondary-foreground: hsl(0, 0%, 98%);
-  --muted: hsl(0, 0%, 10%);
-  --muted-foreground: hsl(0, 0%, 65%);
-  --accent: hsl(216, 87%, 65%);
-  --accent-foreground: hsl(0, 0%, 98%);
-  --destructive: hsl(0, 62%, 50%);
+  --primary-hover: hsl(266, 84%, 68%);
+  --primary-pressed: hsl(266, 84%, 56%);
+  
+  --secondary: hsl(210, 18%, 30%);
+  --secondary-foreground: hsl(220, 20%, 92%);
+  --secondary-hover: hsl(210, 18%, 36%);
+  
+  /* Surface tiers */
+  --muted: hsl(220, 16%, 18%);
+  --muted-foreground: hsl(220, 12%, 70%);
+  
+  /* Accent cyan for highlights */
+  --accent: hsl(187, 78%, 54%);
+  --accent-foreground: hsl(222, 28%, 8%);
+  
+  /* Semantic colors */
+  --destructive: hsl(1, 80%, 58%);
   --destructive-foreground: hsl(0, 0%, 98%);
-  --border: hsl(0, 0%, 15%);
-  --input: hsl(0, 0%, 10%);
-  --ring: hsl(265, 91%, 63%);
+  --success: hsl(148, 64%, 46%);
+  --warning: hsl(36, 90%, 56%);
+  
+  /* Enhanced borders */
+  --border: hsl(220, 15%, 22%);
+  --border-subtle: hsl(220, 14%, 18%);
+  --input: hsl(220, 16%, 18%);
+  --ring: hsl(187, 78%, 60%);
   --chart-1: hsl(265, 91%, 63%);
   --chart-2: hsl(159, 78%, 36%);
   --chart-3: hsl(42, 93%, 56%);
@@ -53,25 +71,43 @@
 }
 
 .dark {
-  --background: hsl(0, 0%, 3%);
-  --foreground: hsl(0, 0%, 98%);
-  --card: hsl(0, 0%, 5%);
-  --card-foreground: hsl(0, 0%, 98%);
-  --popover: hsl(0, 0%, 5%);
-  --popover-foreground: hsl(0, 0%, 98%);
-  --primary: hsl(265, 91%, 63%);
+  /* Surface layers - Neo-noir depth system */
+  --background: hsl(222, 28%, 8%);
+  --foreground: hsl(220, 20%, 92%);
+  --card: hsl(222, 24%, 12%);
+  --card-foreground: hsl(220, 20%, 92%);
+  --popover: hsl(222, 24%, 12%);
+  --popover-foreground: hsl(220, 20%, 92%);
+  
+  /* Action colors - Distinct button states */
+  --primary: hsl(266, 84%, 62%);
   --primary-foreground: hsl(0, 0%, 98%);
-  --secondary: hsl(0, 0%, 10%);
-  --secondary-foreground: hsl(0, 0%, 95%);
-  --muted: hsl(0, 0%, 10%);
-  --muted-foreground: hsl(0, 0%, 65%);
-  --accent: hsl(216, 87%, 65%);
-  --accent-foreground: hsl(0, 0%, 98%);
-  --destructive: hsl(0, 62%, 50%);
+  --primary-hover: hsl(266, 84%, 68%);
+  --primary-pressed: hsl(266, 84%, 56%);
+  
+  --secondary: hsl(210, 18%, 30%);
+  --secondary-foreground: hsl(220, 20%, 92%);
+  --secondary-hover: hsl(210, 18%, 36%);
+  
+  /* Surface tiers */
+  --muted: hsl(220, 16%, 18%);
+  --muted-foreground: hsl(220, 12%, 70%);
+  
+  /* Accent cyan for highlights */
+  --accent: hsl(187, 78%, 54%);
+  --accent-foreground: hsl(222, 28%, 8%);
+  
+  /* Semantic colors */
+  --destructive: hsl(1, 80%, 58%);
   --destructive-foreground: hsl(0, 0%, 98%);
-  --border: hsl(0, 0%, 15%);
-  --input: hsl(0, 0%, 10%);
-  --ring: hsl(265, 91%, 63%);
+  --success: hsl(148, 64%, 46%);
+  --warning: hsl(36, 90%, 56%);
+  
+  /* Enhanced borders */
+  --border: hsl(220, 15%, 22%);
+  --border-subtle: hsl(220, 14%, 18%);
+  --input: hsl(220, 16%, 18%);
+  --ring: hsl(187, 78%, 60%);
   --chart-1: hsl(265, 91%, 63%);
   --chart-2: hsl(159, 78%, 36%);
   --chart-3: hsl(42, 93%, 56%);
@@ -104,14 +140,64 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    background-color: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+  
+  /* Force enhanced dark theme */
+  html, body, #root {
+    background-color: hsl(222, 28%, 8%) !important;
+    color: hsl(220, 20%, 92%) !important;
+  }
+  
+  /* Text hierarchy */
+  .text-primary {
+    color: hsl(220, 20%, 92%);
+  }
+  
+  .text-secondary {
+    color: hsl(220, 12%, 70%);
+  }
+  
+  .text-tertiary {
+    color: hsl(218, 10%, 55%);
   }
 }
 
 @layer components {
   .gradient-hero {
-    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent)));
+    background: linear-gradient(135deg, hsl(266, 84%, 62%), hsl(187, 78%, 54%));
+  }
+  
+  /* Enhanced button styles with proper hover states */
+  .btn-primary:hover {
+    background-color: hsl(266, 84%, 68%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(101, 80, 255, 0.3);
+  }
+  
+  .btn-primary:active {
+    background-color: hsl(266, 84%, 56%);
+    transform: translateY(0);
+  }
+  
+  .btn-secondary:hover {
+    background-color: hsl(210, 18%, 36%);
+    border-color: hsl(187, 78%, 54%);
+  }
+  
+  /* Enhanced card styles with beautiful shadows */
+  .card-enhanced {
+    background: hsl(222, 24%, 12%);
+    border: 1px solid hsl(220, 15%, 22%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(101, 80, 255, 0.18);
+    transition: all 0.2s ease;
+  }
+  
+  .card-enhanced:hover {
+    border-color: hsl(187, 78%, 54%);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(101, 80, 255, 0.25);
+    transform: translateY(-2px);
   }
 
   .bg-grid-pattern {
@@ -147,6 +233,34 @@
     background: hsl(var(--border));
     border-radius: 3px;
   }
+  
+  .scroll-container::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--accent));
+  }
+  
+  /* Rating stars with accent color */
+  .rating-star {
+    color: hsl(187, 78%, 54%);
+  }
+  
+  /* Status badges with semantic colors */
+  .badge-ongoing {
+    background-color: hsl(148, 64%, 46%);
+    color: hsl(222, 28%, 8%);
+    font-weight: 500;
+  }
+  
+  .badge-completed {
+    background-color: hsl(187, 78%, 54%);
+    color: hsl(222, 28%, 8%);
+    font-weight: 500;
+  }
+  
+  .badge-hiatus {
+    background-color: hsl(36, 90%, 56%);
+    color: hsl(222, 28%, 8%);
+    font-weight: 500;
+  }
 
   .admin-sidebar {
     min-height: calc(100vh - 4rem);
@@ -164,5 +278,26 @@
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+  
+  /* Enhanced focus states for accessibility */
+  .focus-ring:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px hsla(187, 78%, 60%, 0.4);
+    border-color: hsl(187, 78%, 54%);
+  }
+  
+  /* Better input field styling */
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px hsla(187, 78%, 60%, 0.4);
+    border-color: hsl(187, 78%, 54%);
+  }
+  
+  /* Enhanced link hover states */
+  a:hover {
+    color: hsl(187, 78%, 54%);
+    text-decoration: underline;
+    text-decoration-color: hsla(187, 78%, 54%, 0.6);
   }
 }
