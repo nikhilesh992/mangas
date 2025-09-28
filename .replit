@@ -8,7 +8,7 @@ channel = "stable-25_05"
 [deployment]
 deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
-run = ["JWT_SECRET=02d54584dd82c3a9571c759905a4b72f3ec27468f3ce7f06cfa1caccf10a9330", "npm", "run", "start"]
+run = ["npm", "run", "start"]
 
 [[ports]]
 localPort = 5000
