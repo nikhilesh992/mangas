@@ -83,7 +83,7 @@ interface MangaDxResponse<T> {
 class MangaDxService {
   private baseUrl: string;
 
-  constructor(baseUrl = "https://api.mangadx.org") {
+  constructor(baseUrl = "https://api.mangadex.org") {
     this.baseUrl = baseUrl;
   }
 
@@ -216,7 +216,7 @@ class MangaDxService {
   }
 
   buildCoverUrl(mangaId: string, filename: string, size: number = 512): string {
-    return `https://uploads.mangadx.org/covers/${mangaId}/${filename}.${size}.jpg`;
+    return `https://uploads.mangadex.org/covers/${mangaId}/${filename}.${size}.jpg`;
   }
 
   extractTitle(manga: MangaDxManga, language = 'en'): string {
