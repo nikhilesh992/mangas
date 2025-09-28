@@ -33,7 +33,7 @@ export default function Home() {
     queryFn: mangaApi.getTags,
   });
   
-  const availableTags = tagsData?.data?.map(tag => tag.name) || [];
+  const availableTags = tagsData?.data?.map((tag: any) => tag.name) || [];
   
   // Enhanced sort options
   const sortOptions = [
@@ -105,8 +105,58 @@ export default function Home() {
   const totalPages = Math.ceil(total / (searchParams.limit || 20));
 
   return (
-    <div className="container mx-auto px-4 py-8" data-testid="home-page">
-      <div className="flex flex-col lg:flex-row gap-8">
+    <div data-testid="home-page">
+      {/* Hero Section */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-background via-background to-primary/10 border-b border-border">
+        <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+        <div className="relative container mx-auto px-4 py-16 lg:py-24">
+          <div className="text-center max-w-4xl mx-auto">
+            <h1 className="text-4xl lg:text-6xl font-bold mb-6 gradient-hero bg-clip-text text-transparent animate-in fade-in-0 slide-in-from-bottom-4 duration-1000">
+              Discover Your Next
+              <br />
+              <span className="text-primary">Manga Adventure</span>
+            </h1>
+            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-in fade-in-0 slide-in-from-bottom-4 duration-1000 delay-300">
+              Explore thousands of manga series from around the world. From action-packed adventures to heartwarming romances, find your perfect read.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in fade-in-0 slide-in-from-bottom-4 duration-1000 delay-500">
+              <div className="relative">
+                <Input
+                  type="search"
+                  placeholder="Search for manga titles..."
+                  value={searchParams.search || ""}
+                  onChange={(e) => handleFilterChange("search", e.target.value || undefined)}
+                  className="w-full sm:w-96 h-12 pl-12 text-lg bg-card/50 backdrop-blur-sm border-border/50"
+                  data-testid="hero-search-input"
+                />
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                  <div className="w-5 h-5 border-2 border-muted-foreground rounded-full"></div>
+                  <div className="w-2 h-2 bg-muted-foreground rotate-45 absolute top-3 left-3"></div>
+                </div>
+              </div>
+            </div>
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-8 max-w-md mx-auto mt-12 animate-in fade-in-0 slide-in-from-bottom-4 duration-1000 delay-700">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary">{total.toLocaleString()}</div>
+                <div className="text-sm text-muted-foreground">Manga Titles</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary">50K+</div>
+                <div className="text-sm text-muted-foreground">Chapters</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-primary">24/7</div>
+                <div className="text-sm text-muted-foreground">Updates</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content Section */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
         {/* Filters Sidebar */}
         <div className={`lg:w-64 flex-shrink-0 ${isMobile && !showFilters ? "hidden" : ""}`}>
           <Card className="sticky top-24" data-testid="filters-card">
@@ -173,7 +223,7 @@ export default function Home() {
                 
                 {/* Tag Selection */}
                 <div className="max-h-40 overflow-y-auto space-y-1">
-                  {availableTags.map((tag) => (
+                  {availableTags.map((tag: string) => (
                     <div key={tag} className="flex items-center space-x-2">
                       <Checkbox
                         id={`tag-${tag}`}
@@ -379,6 +429,7 @@ export default function Home() {
             </>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
