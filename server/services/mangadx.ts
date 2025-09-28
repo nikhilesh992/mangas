@@ -173,6 +173,7 @@ class MangaDxService {
     limit?: number;
     offset?: number;
     includes?: string[];
+    hasAvailableChapters?: boolean;
   } = {}): Promise<MangaDxResponse<MangaDxManga[]>> {
     const searchParams = new URLSearchParams();
     searchParams.set('title', title);
@@ -205,9 +206,9 @@ class MangaDxService {
       params.translatedLanguage.forEach(lang => searchParams.append('translatedLanguage[]', lang));
     }
     
-    // Set proper chapter ordering
-    searchParams.set('order[volume]', 'asc');
-    searchParams.set('order[chapter]', 'asc');
+    // Set proper chapter ordering - descending for latest first
+    searchParams.set('order[volume]', 'desc');
+    searchParams.set('order[chapter]', 'desc');
 
     const response = await fetch(`${this.baseUrl}/chapter?${searchParams}`);
     if (!response.ok) {

@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Manga } from "@/lib/types";
 import { analytics } from "@/lib/analytics";
-import placeholderImage from "@assets/stock_images/manga_book_placehold_a21b69fb.jpg";
+// import placeholderImage from "../../assets/stock_images/manga_book_placehold_a21b69fb.jpg";
+const placeholderImage = "/placeholder-manga.jpg"; // Use a simple placeholder path
 
 interface MangaCardProps {
   manga: Manga;
@@ -115,15 +116,13 @@ export function MangaCard({
                   </div>
                 </div>
                 
-                {manga.latestChapter && manga.latestChapter !== 'null' ? (
+                {manga.latestChapter && manga.latestChapter !== 'null' && (
                   <div className="text-right">
                     <p className="text-xs font-medium text-foreground" data-testid={`latest-chapter-${manga.id}`}>
                       Ch. {manga.latestChapter}
                     </p>
                     <p className="text-xs text-muted-foreground">Latest</p>
                   </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground">No chapters</p>
                 )}
               </div>
             </div>
@@ -213,7 +212,7 @@ export function MangaCard({
             </Badge>
           </div>
 
-          {manga.latestChapter && manga.latestChapter !== 'null' ? (
+          {manga.latestChapter && manga.latestChapter !== 'null' && (
             <div className="mt-1 space-y-1">
               <p 
                 className="text-xs text-muted-foreground"
@@ -226,12 +225,6 @@ export function MangaCard({
                   {new Date((manga as any).latestChapterDate).toLocaleDateString()}
                 </p>
               )}
-            </div>
-          ) : (
-            <div className="mt-1">
-              <p className="text-xs text-muted-foreground opacity-60">
-                No chapters available
-              </p>
             </div>
           )}
         </div>

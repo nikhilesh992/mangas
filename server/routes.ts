@@ -109,70 +109,145 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status,
         tags,
         excludedTags,
-        contentRating = ['safe', 'suggestive']
+        contentRating = ['safe', 'suggestive'],
+        source
       } = req.query;
 
-      let result;
-      
-      // If search parameter is provided, use search endpoint
-      if (search) {
-        result = await mangaDxService.searchManga(search as string, {
-          limit: Number(limit),
-          offset: Number(offset),
-          includes: ['cover_art', 'author', 'artist']
-        });
-      } else {
-        // Use manga list endpoint with filters
-        // Handle sorting: if order is asc/desc, use for updatedAt; otherwise map specific fields
-        let orderParam: string = 'desc';
-        const orderStr = order as string;
-        if (['asc', 'desc'].includes(orderStr)) {
-          orderParam = orderStr;
-        } else if (['title', 'year'].includes(orderStr)) {
-          orderParam = 'desc'; // Default direction for specific fields
+      let mangaDxData: any[] = [];
+      let totalCount = 0;
+
+      // Fetch MangaDx data
+      try {
+        let result;
+        
+        // If search parameter is provided, use search endpoint
+        if (search) {
+          result = await mangaDxService.searchManga(search as string, {
+            limit: Number(limit),
+            offset: Number(offset),
+            includes: ['cover_art', 'author', 'artist'],
+            hasAvailableChapters: true
+          });
+        } else {
+          // Use manga list endpoint with filters
+          let orderParam: string = 'desc';
+          let orderField: string = 'updatedAt';
+          const orderStr = order as string;
+
+          // Map frontend sorting options to MangaDx API parameters
+          switch (orderStr) {
+            case 'none':
+              orderParam = 'desc';
+              orderField = 'updatedAt';
+              break;
+            case 'relevance':
+              orderParam = 'desc';
+              orderField = 'relevance';
+              break;
+            case 'latestUploadedChapter':
+              orderParam = 'desc';
+              orderField = 'latestUploadedChapter';
+              break;
+            case 'oldestUploadedChapter':
+              orderParam = 'asc';
+              orderField = 'latestUploadedChapter';
+              break;
+            case 'title-asc':
+              orderParam = 'asc';
+              orderField = 'title';
+              break;
+            case 'title-desc':
+              orderParam = 'desc';
+              orderField = 'title';
+              break;
+            case 'rating-desc':
+              orderParam = 'desc';
+              orderField = 'rating';
+              break;
+            case 'rating-asc':
+              orderParam = 'asc';
+              orderField = 'rating';
+              break;
+            case 'followedCount-desc':
+              orderParam = 'desc';
+              orderField = 'followedCount';
+              break;
+            case 'followedCount-asc':
+              orderParam = 'asc';
+              orderField = 'followedCount';
+              break;
+            case 'createdAt-desc':
+              orderParam = 'desc';
+              orderField = 'createdAt';
+              break;
+            case 'createdAt-asc':
+              orderParam = 'asc';
+              orderField = 'createdAt';
+              break;
+            case 'year-asc':
+              orderParam = 'asc';
+              orderField = 'year';
+              break;
+            case 'year-desc':
+              orderParam = 'desc';
+              orderField = 'year';
+              break;
+            default:
+              orderParam = 'desc';
+              orderField = 'updatedAt';
+          }
+
+          result = await mangaDxService.getMangaList({
+            limit: Number(limit),
+            offset: Number(offset),
+            order: orderParam,
+            orderField: orderField,
+            includes: ['cover_art', 'author', 'artist'],
+            hasAvailableChapters: true,
+            contentRating: Array.isArray(contentRating) ? contentRating as string[] : [contentRating as string],
+            status: status ? (Array.isArray(status) ? status as string[] : [status as string]) : undefined,
+            tags: tags ? (Array.isArray(tags) ? tags as string[] : [tags as string]) : undefined,
+            excludedTags: excludedTags ? (Array.isArray(excludedTags) ? excludedTags as string[] : [excludedTags as string]) : undefined
+          });
         }
 
-        result = await mangaDxService.getMangaList({
-          limit: Number(limit),
-          offset: Number(offset),
-          order: orderParam,
-          includes: ['cover_art', 'author', 'artist'],
-          hasAvailableChapters: true,
-          contentRating: Array.isArray(contentRating) ? contentRating as string[] : [contentRating as string],
-          status: status ? (Array.isArray(status) ? status as string[] : [status as string]) : undefined,
-          tags: tags ? (Array.isArray(tags) ? tags as string[] : [tags as string]) : undefined,
-          excludedTags: excludedTags ? (Array.isArray(excludedTags) ? excludedTags as string[] : [excludedTags as string]) : undefined
-        });
+        // Transform MangaDx data (filtering is now handled by the API with hasAvailableChapters: true)
+        mangaDxData = result.data
+          .map(manga => {
+            const originalCoverUrl = mangaDxService.extractCoverArt(manga);
+            const proxiedCoverUrl = (originalCoverUrl && originalCoverUrl.trim() !== '') 
+              ? `/api/image-proxy?url=${encodeURIComponent(originalCoverUrl)}` 
+              : null;
+            
+            return {
+              id: manga.id,
+              title: mangaDxService.extractTitle(manga),
+              description: mangaDxService.extractDescription(manga),
+              coverUrl: proxiedCoverUrl,
+              status: manga.attributes.status,
+              year: manga.attributes.year,
+              contentRating: manga.attributes.contentRating,
+              genres: mangaDxService.extractGenres(manga),
+              authors: mangaDxService.extractAuthors(manga),
+              updatedAt: manga.attributes.updatedAt,
+              latestChapter: manga.attributes.lastChapter,
+              availableLanguages: manga.attributes.availableTranslatedLanguages,
+              hasChapters: true,
+              source: 'mangadx'
+            };
+          });
+
+        totalCount += result.total || 0;
+      } catch (error) {
+        console.error('Error fetching MangaDx data:', error);
       }
 
-      // Transform the data to match the expected frontend format
-      const transformedManga = result.data.map(manga => {
-        const originalCoverUrl = mangaDxService.extractCoverArt(manga);
-        const proxiedCoverUrl = (originalCoverUrl && originalCoverUrl.trim() !== '') 
-          ? `/api/image-proxy?url=${encodeURIComponent(originalCoverUrl)}` 
-          : null;
-        
-        return {
-          id: manga.id,
-          title: mangaDxService.extractTitle(manga),
-          description: mangaDxService.extractDescription(manga),
-          coverUrl: proxiedCoverUrl,
-          status: manga.attributes.status,
-          year: manga.attributes.year,
-          contentRating: manga.attributes.contentRating,
-          genres: mangaDxService.extractGenres(manga),
-          authors: mangaDxService.extractAuthors(manga),
-          updatedAt: manga.attributes.updatedAt,
-          latestChapter: manga.attributes.latestUploadedChapter,
-          availableLanguages: manga.attributes.availableTranslatedLanguages,
-        };
-      });
-
       res.json({
-        data: transformedManga,
-        total: result.total || transformedManga.length,
-        limit: result.limit || Number(limit),
-        offset: result.offset || Number(offset),
+        data: mangaDxData,
+        total: totalCount,
+        limit: Number(limit),
+        offset: Number(offset),
+        sources: ['mangadx']
       });
     } catch (error: any) {
       console.error('Error fetching manga list:', error.message);
@@ -202,8 +277,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         genres: mangaDxService.extractGenres(manga),
         authors: mangaDxService.extractAuthors(manga),
         updatedAt: manga.attributes.updatedAt,
-        latestChapter: manga.attributes.latestUploadedChapter,
+        latestChapter: manga.attributes.lastChapter,
         availableLanguages: manga.attributes.availableTranslatedLanguages,
+        hasChapters: true,
+        source: 'mangadx'
       };
 
       res.json(transformedManga);
@@ -216,7 +293,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       const { limit = 100, offset = 0, translatedLanguage = ['en'] } = req.query;
-
       const result = await mangaDxService.getChaptersByMangaId(id, {
         limit: Number(limit),
         offset: Number(offset),
@@ -233,10 +309,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         pages: chapter.attributes.pages,
         publishAt: chapter.attributes.publishAt,
         readableAt: chapter.attributes.readableAt,
+        source: 'mangadx'
       }));
 
+      // Sort chapters in descending order (latest first) - server-side sorting to ensure proper order
+      const sortedChapters = transformedChapters.sort((a, b) => {
+        // First sort by volume (descending)
+        const volumeA = parseFloat(a.volume) || 0;
+        const volumeB = parseFloat(b.volume) || 0;
+        if (volumeA !== volumeB) {
+          return volumeB - volumeA;
+        }
+        
+        // Then sort by chapter (descending) - handle decimal chapters properly
+        const chapterA = parseFloat(a.chapter) || 0;
+        const chapterB = parseFloat(b.chapter) || 0;
+        
+        // If both are valid numbers, sort numerically
+        if (!isNaN(chapterA) && !isNaN(chapterB)) {
+          return chapterB - chapterA;
+        }
+        
+        // If one is NaN, put the valid number first
+        if (isNaN(chapterA) && !isNaN(chapterB)) return 1;
+        if (!isNaN(chapterA) && isNaN(chapterB)) return -1;
+        
+        // If both are NaN, sort alphabetically (descending)
+        return b.chapter.localeCompare(a.chapter);
+      });
+
       res.json({
-        data: transformedChapters,
+        data: sortedChapters,
         total: result.total,
         limit: result.limit,
         offset: result.offset,
@@ -290,6 +393,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         images,
         hash: imagesResult.chapter.hash,
         baseUrl: imagesResult.baseUrl,
+        source: 'mangadx'
       });
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -718,52 +822,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
   const httpServer = createServer(app);
-  // Test endpoint for MangaPlus
-  app.get("/api/test-mangaplus", async (req, res) => {
-    try {
-      const mockMangaPlus = [
-        {
-          id: 'mp-1001',
-          title: 'One Piece (MangaPlus)',
-          description: 'Official colored manga from MangaPlus',
-          coverUrl: 'https://via.placeholder.com/300x400/FF6B6B/FFFFFF?text=One+Piece',
-          status: 'ongoing',
-          year: 1997,
-          contentRating: 'safe',
-          genres: ['Action', 'Adventure', 'Shonen'],
-          authors: [{ id: '1', name: 'Eiichiro Oda', type: 'author' }],
-          updatedAt: new Date().toISOString(),
-          latestChapter: '1100',
-          availableLanguages: ['en'],
-        },
-        {
-          id: 'mp-1002',
-          title: 'Naruto (MangaPlus)',
-          description: 'Official colored manga from MangaPlus',
-          coverUrl: 'https://via.placeholder.com/300x400/4ECDC4/FFFFFF?text=Naruto',
-          status: 'completed',
-          year: 1999,
-          contentRating: 'safe',
-          genres: ['Action', 'Adventure', 'Shonen'],
-          authors: [{ id: '2', name: 'Masashi Kishimoto', type: 'author' }],
-          updatedAt: new Date().toISOString(),
-          latestChapter: '700',
-          availableLanguages: ['en'],
-        },
-      ];
-
-      res.json({
-        data: mockMangaPlus,
-        total: mockMangaPlus.length,
-        limit: 20,
-        offset: 0,
-        sources: ['mangaplus'],
-      });
-    } catch (error: any) {
-      res.status(500).json({ message: 'Test endpoint error', error: error.message });
-    }
-  });
-
   return httpServer;
 }

@@ -1,7 +1,7 @@
 import { useParams, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { Heart, BookOpen, Eye, Calendar, Tag, Play, SkipForward } from "lucide-react";
+import { useEffect, useState, useMemo } from "react";
+import { Heart, BookOpen, Eye, Calendar, Tag, Play, SkipForward, ArrowUpDown, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,10 @@ export default function MangaDetail() {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [expandedLanguages, setExpandedLanguages] = useState<Set<string>>(new Set());
+  const [languageSortOrder, setLanguageSortOrder] = useState<Record<string, 'asc' | 'desc'>>({});
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const { data: manga, isLoading, error } = useQuery({
     queryKey: ["/api/manga", id],
@@ -28,7 +32,7 @@ export default function MangaDetail() {
 
   const { data: chapters, isLoading: chaptersLoading } = useQuery({
     queryKey: ["/api/manga", id, "chapters"],
-    queryFn: () => mangaApi.getChapters(id!, { limit: 100, translatedLanguage: ["en"] }),
+    queryFn: () => mangaApi.getChapters(id!, { limit: 100, translatedLanguage: ["en", "ja", "ko", "zh", "es", "fr", "de", "pt", "it", "ru"] }),
     enabled: !!id,
   });
 
@@ -82,6 +86,128 @@ export default function MangaDetail() {
     },
   });
 
+  // Move all hooks before any early returns
+  const chaptersList = chapters?.data || [];
+  const isFavorited = favorites?.some(fav => fav.mangaId === manga?.id);
+  
+  // Helper functions
+  const isChapterRead = (chapterId: string) => {
+    return readingProgress?.some(progress => 
+      progress.chapterId === chapterId && progress.completed
+    ) || false;
+  };
+
+  // Initialize state when chapters are loaded
+  useEffect(() => {
+    if (chaptersList.length > 0 && !isInitialized) {
+      // Group chapters by language
+      const groups: Record<string, Chapter[]> = {};
+      chaptersList.forEach((chapter: Chapter) => {
+        const language = chapter.language || 'unknown';
+        if (!groups[language]) {
+          groups[language] = [];
+        }
+        groups[language].push(chapter);
+      });
+
+      const availableLanguages = Object.keys(groups);
+      if (availableLanguages.length > 0) {
+        const defaultLanguage = availableLanguages.includes('en') ? 'en' : availableLanguages[0];
+        setExpandedLanguages(new Set([defaultLanguage]));
+        
+        // Initialize sort order for all languages
+        const initialSortOrder: Record<string, 'asc' | 'desc'> = {};
+        availableLanguages.forEach(lang => {
+          initialSortOrder[lang] = 'desc';
+        });
+        setLanguageSortOrder(initialSortOrder);
+        setIsInitialized(true);
+      }
+    }
+  }, [chaptersList.length, isInitialized]);
+
+  // Group and sort chapters
+  const sortedGroupedChapters = useMemo(() => {
+    if (!isInitialized || chaptersList.length === 0) {
+      return {};
+    }
+
+    // Group chapters by language
+    const groups: Record<string, Chapter[]> = {};
+    chaptersList.forEach((chapter: Chapter) => {
+      const language = chapter.language || 'unknown';
+      if (!groups[language]) {
+        groups[language] = [];
+      }
+      groups[language].push(chapter);
+    });
+
+    // Sort chapters within each language group
+    const sorted: Record<string, Chapter[]> = {};
+    Object.keys(groups).forEach(language => {
+      const currentSortOrder = languageSortOrder[language] || 'desc';
+      sorted[language] = [...groups[language]].sort((a: Chapter, b: Chapter) => {
+        const chapterA = parseFloat(a.chapter) || 0;
+        const chapterB = parseFloat(b.chapter) || 0;
+        return currentSortOrder === 'desc' ? chapterB - chapterA : chapterA - chapterB;
+      });
+    });
+
+    return sorted;
+  }, [chaptersList, languageSortOrder, isInitialized]);
+
+  // Language name mapping
+  const languageNames: Record<string, string> = {
+    'en': 'English',
+    'ja': 'Japanese',
+    'ko': 'Korean',
+    'zh': 'Chinese',
+    'es': 'Spanish',
+    'fr': 'French',
+    'de': 'German',
+    'pt': 'Portuguese',
+    'it': 'Italian',
+    'ru': 'Russian',
+    'unknown': 'Unknown'
+  };
+  
+  // Helper functions for language management
+  const toggleLanguageExpansion = (languageCode: string) => {
+    const newExpanded = new Set(expandedLanguages);
+    if (newExpanded.has(languageCode)) {
+      newExpanded.delete(languageCode);
+    } else {
+      newExpanded.add(languageCode);
+    }
+    setExpandedLanguages(newExpanded);
+  };
+
+  const toggleLanguageSort = (languageCode: string) => {
+    const currentSort = languageSortOrder[languageCode] || 'desc';
+    setLanguageSortOrder(prev => ({
+      ...prev,
+      [languageCode]: currentSort === 'desc' ? 'asc' : 'desc'
+    }));
+  };
+
+  // Get first and latest chapters (remember: chapters are now sorted desc from API)
+  const latestChapter = chaptersList[0]; // First in desc order = latest
+  const firstChapter = chaptersList[chaptersList.length - 1]; // Last in desc order = first
+
+  const handleFavoriteToggle = () => {
+    if (!manga) return;
+    if (isFavorited) {
+      removeFavoriteMutation.mutate(manga.id);
+    } else {
+      addFavoriteMutation.mutate({
+        mangaId: manga.id,
+        mangaTitle: manga.title,
+        mangaCover: manga.coverUrl || undefined,
+      });
+    }
+  };
+
+  // Early returns AFTER all hooks
   if (!id) return <div>Invalid manga ID</div>;
 
   if (error) {
@@ -114,32 +240,6 @@ export default function MangaDetail() {
   }
 
   if (!manga) return null;
-
-  const isFavorited = favorites?.some(fav => fav.mangaId === manga.id);
-  const chaptersList = chapters?.data || [];
-  
-  // Helper functions
-  const isChapterRead = (chapterId: string) => {
-    return readingProgress?.some(progress => 
-      progress.chapterId === chapterId && progress.completed
-    ) || false;
-  };
-  
-  // Get first and latest chapters (remember: chapters are now sorted desc from API)
-  const latestChapter = chaptersList[0]; // First in desc order = latest
-  const firstChapter = chaptersList[chaptersList.length - 1]; // Last in desc order = first
-
-  const handleFavoriteToggle = () => {
-    if (isFavorited) {
-      removeFavoriteMutation.mutate(manga.id);
-    } else {
-      addFavoriteMutation.mutate({
-        mangaId: manga.id,
-        mangaTitle: manga.title,
-        mangaCover: manga.coverUrl || undefined,
-      });
-    }
-  };
 
   return (
     <div className="container mx-auto px-4 py-8" data-testid="manga-detail-page">
@@ -263,6 +363,16 @@ export default function MangaDetail() {
                   Chapters
                 </h3>
                 <div className="flex items-center space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+                    className="flex items-center gap-2"
+                    data-testid="sort-toggle"
+                  >
+                    <ArrowUpDown className="h-3 w-3" />
+                    {sortOrder === 'desc' ? 'Latest First' : 'Oldest First'}
+                  </Button>
                   <span className="text-sm text-muted-foreground">
                     {chaptersList.length} chapters
                   </span>
@@ -308,63 +418,105 @@ export default function MangaDetail() {
                   <p className="text-muted-foreground">No chapters available yet.</p>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-96 overflow-y-auto scroll-container" data-testid="chapters-list">
-                  {chaptersList.map((chapter: Chapter) => {
-                    const isRead = isChapterRead(chapter.id);
+                <div className="space-y-4" data-testid="chapters-list">
+                  {Object.entries(sortedGroupedChapters).map(([languageCode, chapters]) => {
+                    const isExpanded = expandedLanguages.has(languageCode);
+                    const currentSortOrder = languageSortOrder[languageCode] || 'desc';
+                    
                     return (
-                      <Link 
-                        key={chapter.id} 
-                        href={`/reader/${chapter.id}`}
-                        data-testid={`chapter-${chapter.id}`}
-                      >
-                        <div className={`flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors border-l-4 ${
-                          isRead 
-                            ? "border-red-500 bg-red-50 dark:bg-red-950/20" 
-                            : "border-transparent"
-                        }`}>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <h4 className={`font-medium ${
-                                isRead 
-                                  ? "text-red-600 dark:text-red-400" 
-                                  : "text-foreground"
-                              }`}>
-                                Chapter {chapter.chapter}
-                                {chapter.title && `: ${chapter.title}`}
-                              </h4>
-                              {isRead && (
-                                <Badge variant="secondary" className="text-xs bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
-                                  READ
-                                </Badge>
-                              )}
-                            </div>
-                            <p className={`text-sm mt-1 flex items-center ${
-                              isRead 
-                                ? "text-red-500 dark:text-red-400" 
-                                : "text-muted-foreground"
-                            }`}>
-                              <Calendar className="h-3 w-3 mr-1" />
-                              {new Date(chapter.publishAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <div className="flex items-center space-x-3">
-                            <span className={`text-sm ${
-                              isRead 
-                                ? "text-red-500 dark:text-red-400" 
-                                : "text-muted-foreground"
-                            }`}>
-                              {chapter.language.toUpperCase()}
-                            </span>
-                            <span className={`text-sm ${
-                              isRead 
-                                ? "text-red-500 dark:text-red-400" 
-                                : "text-muted-foreground"
-                            }`}>
-                              {chapter.pages} pages
+                      <div key={languageCode} className="border border-border rounded-lg">
+                        {/* Language Dropdown Header */}
+                        <div 
+                          className="flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => toggleLanguageExpansion(languageCode)}
+                        >
+                          <div className="flex items-center gap-2">
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            <Badge variant="outline" className="text-sm font-medium">
+                              {languageNames[languageCode] || languageCode.toUpperCase()}
+                            </Badge>
+                            <span className="text-sm text-muted-foreground">
+                              {(chapters as Chapter[]).length} chapters
                             </span>
                           </div>
+                          
+                          {isExpanded && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleLanguageSort(languageCode);
+                              }}
+                              className="flex items-center gap-1 text-xs"
+                            >
+                              <ArrowUpDown className="h-3 w-3" />
+                              {currentSortOrder === 'desc' ? 'Latest First' : 'Oldest First'}
+                            </Button>
+                          )}
                         </div>
-                      </Link>
+                        
+                        {/* Chapters in this language (collapsible) */}
+                        {isExpanded && (
+                          <div className="border-t border-border">
+                            {(chapters as Chapter[]).map((chapter: Chapter) => {
+                              const isRead = isChapterRead(chapter.id);
+                              return (
+                                <Link 
+                                  key={chapter.id} 
+                                  href={`/reader/${chapter.id}`}
+                                  data-testid={`chapter-${chapter.id}`}
+                                >
+                                  <div className={`flex items-center justify-between p-3 hover:bg-muted/30 cursor-pointer transition-colors border-l-4 ${
+                                    isRead 
+                                      ? "border-red-500 bg-red-50 dark:bg-red-950/20" 
+                                      : "border-transparent"
+                                  }`}>
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2">
+                                        <h4 className={`font-medium ${
+                                          isRead 
+                                            ? "text-red-600 dark:text-red-400" 
+                                            : "text-foreground"
+                                        }`}>
+                                          Episode {chapter.chapter}
+                                          {chapter.title && `: ${chapter.title}`}
+                                        </h4>
+                                        {isRead && (
+                                          <Badge variant="secondary" className="text-xs bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
+                                            READ
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <p className={`text-sm mt-1 flex items-center ${
+                                        isRead 
+                                          ? "text-red-500 dark:text-red-400" 
+                                          : "text-muted-foreground"
+                                      }`}>
+                                        <Calendar className="h-3 w-3 mr-1" />
+                                        {new Date(chapter.publishAt).toLocaleDateString()}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center space-x-3">
+                                      <span className={`text-sm ${
+                                        isRead 
+                                          ? "text-red-500 dark:text-red-400" 
+                                          : "text-muted-foreground"
+                                      }`}>
+                                        {chapter.pages} pages
+                                      </span>
+                                    </div>
+                                  </div>
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

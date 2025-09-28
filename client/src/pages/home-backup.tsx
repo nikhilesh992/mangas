@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { MangaCard } from "@/components/manga/manga-card";
-// import { AdSlot } from "@/components/ads/ad-slot"; // Disabled due to database not configured
+import { AdSlot } from "@/components/ads/ad-slot";
 import { mangaApi } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -66,6 +66,7 @@ export default function Home() {
   const total = data?.total || 0;
   const currentPage = Math.floor((searchParams.offset || 0) / (searchParams.limit || 20)) + 1;
   const totalPages = Math.ceil(total / (searchParams.limit || 20));
+
 
   return (
     <div className="container mx-auto px-4 py-8" data-testid="home-page">
@@ -223,7 +224,7 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Ad Slot - Temporarily disabled due to database not being configured */}
+          {/* Ad Slot - Temporarily disabled due to database issues */}
           {/* <AdSlot position="homepage_top" /> */}
 
           {/* Results */}

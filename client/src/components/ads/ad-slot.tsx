@@ -10,14 +10,33 @@ interface AdSlotProps {
 export function AdSlot({ position, className = "" }: AdSlotProps) {
   const adContainerRef = useRef<HTMLDivElement>(null);
 
-  const { data: adNetworks } = useQuery({
+  // Make ads API calls optional and handle errors gracefully
+  const { data: adNetworks, error: adNetworksError } = useQuery({
     queryKey: ["/api/ads/networks"],
-    queryFn: adsApi.getAdNetworks,
+    queryFn: async () => {
+      try {
+        return await adsApi.getAdNetworks();
+      } catch (error) {
+        console.warn('Failed to load ad networks:', error);
+        return [];
+      }
+    },
+    retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const { data: banners } = useQuery({
+  const { data: banners, error: bannersError } = useQuery({
     queryKey: ["/api/ads/banners", position],
-    queryFn: () => adsApi.getBanners(position),
+    queryFn: async () => {
+      try {
+        return await adsApi.getBanners(position);
+      } catch (error) {
+        console.warn('Failed to load banners:', error);
+        return [];
+      }
+    },
+    retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Inject ad network scripts

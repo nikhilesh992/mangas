@@ -60,10 +60,33 @@ export class MangaPlusService {
   static async getAllTitles(): Promise<MangaPlusTitle[]> {
     try {
       const response = await fetch(`${this.BASE_URL}/title_list/all`);
-      const data: MangaPlusResponse = await response.json();
+      
+      if (!response.ok) {
+        console.error(`MangaPlus API returned ${response.status}: ${response.statusText}`);
+        return [];
+      }
+      
+      const text = await response.text();
+      if (!text || text.trim() === '') {
+        console.error('MangaPlus API returned empty response');
+        return [];
+      }
+      
+      let data: MangaPlusResponse;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error('Failed to parse MangaPlus API response:', parseError);
+        console.error('Response text:', text.substring(0, 200));
+        return [];
+      }
       
       if (data.success?.allTitlesView) {
         return data.success.allTitlesView.titles;
+      }
+      
+      if (data.error) {
+        console.error('MangaPlus API error:', data.error);
       }
       
       return [];

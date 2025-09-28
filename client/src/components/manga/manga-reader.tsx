@@ -233,12 +233,18 @@ export function MangaReader({ chapter }: MangaReaderProps) {
   const handlePreviousChapter = () => {
     if (previousChapter) {
       navigate(`/reader/${previousChapter.id}`);
+    } else {
+      // No previous chapter available, redirect to manga details page
+      navigate(`/manga/${chapter.mangaId}`);
     }
   };
 
   const handleNextChapter = () => {
     if (nextChapter) {
       navigate(`/reader/${nextChapter.id}`);
+    } else {
+      // No next chapter available, redirect to manga details page
+      navigate(`/manga/${chapter.mangaId}`);
     }
   };
 
@@ -457,8 +463,7 @@ export function MangaReader({ chapter }: MangaReaderProps) {
                 variant="ghost"
                 size="sm"
                 onClick={handlePreviousChapter}
-                disabled={!previousChapter}
-                title={previousChapter ? `Previous: Ch. ${previousChapter.chapter}` : "No previous chapter"}
+                title={previousChapter ? `Previous: Ch. ${previousChapter.chapter}` : "Back to Details"}
                 data-testid="prev-chapter-button"
               >
                 <SkipBack className="h-4 w-4" />
@@ -472,8 +477,7 @@ export function MangaReader({ chapter }: MangaReaderProps) {
                 variant="ghost"
                 size="sm"
                 onClick={handleNextChapter}
-                disabled={!nextChapter}
-                title={nextChapter ? `Next: Ch. ${nextChapter.chapter}` : "No next chapter"}
+                title={nextChapter ? `Next: Ch. ${nextChapter.chapter}` : "Back to Details"}
                 data-testid="next-chapter-button"
               >
                 <SkipForward className="h-4 w-4" />
