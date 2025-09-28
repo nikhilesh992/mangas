@@ -1,7 +1,7 @@
 import { useParams, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, useMemo } from "react";
-import { Heart, BookOpen, Eye, Calendar, Tag, Play, SkipForward, ArrowUpDown, ChevronDown, ChevronRight } from "lucide-react";
+import { Heart, BookOpen, Eye, Calendar, Tag, ArrowUpDown, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -190,9 +190,6 @@ export default function MangaDetail() {
     }));
   };
 
-  // Get first and latest chapters (remember: chapters are now sorted desc from API)
-  const latestChapter = chaptersList[0]; // First in desc order = latest
-  const firstChapter = chaptersList[chaptersList.length - 1]; // Last in desc order = first
 
   const handleFavoriteToggle = () => {
     if (!manga) return;
@@ -379,33 +376,6 @@ export default function MangaDetail() {
                 </div>
               </div>
 
-              {/* Navigation Buttons */}
-              <div className="flex flex-col gap-2 mb-6">
-                <Button 
-                  asChild 
-                  className="w-full" 
-                  disabled={!firstChapter}
-                  data-testid="start-first-chapter-button"
-                >
-                  <Link href={firstChapter ? `/reader/${firstChapter.id}` : "#"}>
-                    <Play className="h-4 w-4 mr-2" />
-                    Start Reading
-                  </Link>
-                </Button>
-                
-                <Button 
-                  asChild 
-                  variant="secondary"
-                  className="w-full" 
-                  disabled={!latestChapter}
-                  data-testid="read-latest-chapter-button"
-                >
-                  <Link href={latestChapter ? `/reader/${latestChapter.id}` : "#"}>
-                    <SkipForward className="h-4 w-4 mr-2" />
-                    Latest Chapter
-                  </Link>
-                </Button>
-              </div>
 
               {chaptersLoading ? (
                 <div className="space-y-2" data-testid="chapters-loading">
