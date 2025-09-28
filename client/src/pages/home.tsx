@@ -306,7 +306,7 @@ export default function Home() {
             <>
               <div className="mb-4" data-testid="results-info">
                 <p className="text-sm text-muted-foreground">
-                  Showing {mangaList.length} of {total} results
+                  Showing {((searchParams.offset || 0) + 1)}–{Math.min((searchParams.offset || 0) + (searchParams.limit || 20), total)} of {total.toLocaleString()} results
                   {searchParams.search && ` for "${searchParams.search}"`}
                 </p>
               </div>
@@ -343,12 +343,13 @@ export default function Home() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex justify-center items-center space-x-2" data-testid="pagination">
+                <div className="flex justify-center items-center gap-1 flex-wrap" data-testid="pagination">
                   <Button
                     variant="outline"
                     disabled={currentPage === 1}
                     onClick={() => handlePageChange(0)}
-                    data-testid="first-page"
+                    data-testid="button-first"
+                    className="min-w-[80px]"
                   >
                     First
                   </Button>
@@ -356,8 +357,9 @@ export default function Home() {
                   <Button
                     variant="outline"
                     disabled={currentPage === 1}
-                    onClick={() => handlePageChange((currentPage - 1 - 1) * (searchParams.limit || 20))}
-                    data-testid="prev-page"
+                    onClick={() => handlePageChange((currentPage - 2) * (searchParams.limit || 20))}
+                    data-testid="button-prev"
+                    className="min-w-[80px]"
                   >
                     Previous
                   </Button>
@@ -370,8 +372,10 @@ export default function Home() {
                       <Button
                         key={page}
                         variant={page === currentPage ? "default" : "outline"}
+                        disabled={page === currentPage}
                         onClick={() => handlePageChange((page - 1) * (searchParams.limit || 20))}
-                        data-testid={`page-${page}`}
+                        data-testid={`button-page-${page}`}
+                        className="min-w-[40px] h-10"
                       >
                         {page}
                       </Button>
@@ -381,8 +385,9 @@ export default function Home() {
                   <Button
                     variant="outline"
                     disabled={currentPage === totalPages}
-                    onClick={() => handlePageChange((currentPage + 1 - 1) * (searchParams.limit || 20))}
-                    data-testid="next-page"
+                    onClick={() => handlePageChange(currentPage * (searchParams.limit || 20))}
+                    data-testid="button-next"
+                    className="min-w-[80px]"
                   >
                     Next
                   </Button>
@@ -391,7 +396,8 @@ export default function Home() {
                     variant="outline"
                     disabled={currentPage === totalPages}
                     onClick={() => handlePageChange((totalPages - 1) * (searchParams.limit || 20))}
-                    data-testid="last-page"
+                    data-testid="button-last"
+                    className="min-w-[80px]"
                   >
                     Last
                   </Button>
