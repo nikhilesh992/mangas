@@ -42,7 +42,7 @@ export function MangaCard({
   if (layout === "list") {
     return (
       <Link href={`/manga/${manga.id}`} data-testid={`manga-card-${manga.id}`} onClick={handleMangaClick}>
-        <div className="manga-card bg-card rounded-xl border border-border hover:border-primary/50 hover:shadow-lg transition-all duration-300 cursor-pointer group">
+        <div className="manga-card bg-card rounded-xl shadow-lg hover:shadow-2xl hover:shadow-primary/20 transition-all duration-300 cursor-pointer group hover:-translate-y-1">
           <div className="flex gap-4 p-4 sm:p-6">
             {/* Cover Image */}
             <div className="relative flex-shrink-0">
@@ -133,7 +133,7 @@ export function MangaCard({
 
   return (
     <Link href={`/manga/${manga.id}`} data-testid={`manga-card-${manga.id}`} onClick={handleMangaClick}>
-      <div className="manga-card bg-card rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-all cursor-pointer group">
+      <div className="manga-card bg-card rounded-lg overflow-hidden shadow-lg hover:shadow-2xl hover:shadow-primary/20 transition-all duration-300 cursor-pointer group hover:-translate-y-2">
         <div className="relative">
           <img
             src={manga.coverUrl || placeholderImage}

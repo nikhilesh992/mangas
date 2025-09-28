@@ -27,7 +27,7 @@
   --muted-foreground: hsl(220, 12%, 75%);
   
   /* Premium accent colors */
-  --accent: hsl(195, 85%, 60%);
+  --accent: hsl(195, 70%, 55%);
   --accent-foreground: hsl(220, 30%, 6%);
   
   /* Enhanced semantic colors */
@@ -94,7 +94,7 @@
   --muted-foreground: hsl(220, 12%, 75%);
   
   /* Premium accent colors */
-  --accent: hsl(195, 85%, 60%);
+  --accent: hsl(195, 70%, 55%);
   --accent-foreground: hsl(220, 30%, 6%);
   
   /* Enhanced semantic colors */
@@ -376,17 +376,18 @@
   button[data-variant="default"], 
   .btn-primary,
   button:not([data-variant]):not(.btn-secondary):not(.btn-outline):not(.btn-ghost) {
-    background: linear-gradient(135deg, hsl(195, 85%, 60%) 0%, hsl(187, 78%, 54%) 100%);
-    color: hsl(222, 28%, 8%);
-    box-shadow: 0 4px 12px hsla(195, 85%, 60%, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, hsl(195, 70%, 50%) 0%, hsl(187, 65%, 45%) 100%);
+    color: hsl(0, 0%, 98%);
+    font-weight: 600;
+    box-shadow: 0 4px 12px hsla(195, 70%, 50%, 0.25), 0 2px 4px rgba(0, 0, 0, 0.15);
   }
   
   button[data-variant="default"]:hover,
   .btn-primary:hover,
   button:not([data-variant]):not(.btn-secondary):not(.btn-outline):not(.btn-ghost):hover {
-    background: linear-gradient(135deg, hsl(195, 85%, 65%) 0%, hsl(187, 78%, 58%) 100%);
+    background: linear-gradient(135deg, hsl(195, 70%, 55%) 0%, hsl(187, 65%, 50%) 100%);
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px hsla(195, 85%, 60%, 0.4), 0 4px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 20px hsla(195, 70%, 50%, 0.35), 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
   button[data-variant="default"]:active,
