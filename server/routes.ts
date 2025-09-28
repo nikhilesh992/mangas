@@ -771,7 +771,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { url } = req.query;
       
       if (!url || typeof url !== 'string' || url.trim() === '') {
-        return res.status(400).json({ message: "URL parameter is required" });
+        // Return a placeholder image instead of JSON error
+        return await servePlaceholderImage(res, "No URL provided");
       }
 
       // Decode the URL in case it's URL-encoded
@@ -780,27 +781,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Only allow MangaDx URLs for security  
       const isMangaDxUrl = decodedUrl.includes('uploads.mangadex.org') || decodedUrl.includes('mangadex.network') || decodedUrl.includes('.mangadex.org') || decodedUrl.includes('.mangadex.network');
       if (!isMangaDxUrl) {
-        return res.status(403).json({ message: "Only MangaDx URLs are allowed" });
+        return await servePlaceholderImage(res, "Invalid URL");
       }
 
-      const imageResponse = await fetch(decodedUrl);
+      // Add proper headers to mimic a browser request
+      const imageResponse = await fetch(decodedUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate',
+          'Connection': 'keep-alive',
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-cache'
+        }
+      });
       
       if (!imageResponse.ok) {
-        // Instead of returning JSON error, redirect to a default placeholder
-        // This prevents broken image displays in the frontend
-        const placeholderUrl = 'https://via.placeholder.com/400x600/333333/ffffff?text=No+Cover';
-        const placeholderResponse = await fetch(placeholderUrl);
-        
-        if (placeholderResponse.ok) {
-          const contentType = placeholderResponse.headers.get('content-type') || 'image/png';
-          res.setHeader('Content-Type', contentType);
-          res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache placeholder for 1 hour
-          
-          const buffer = await placeholderResponse.arrayBuffer();
-          return res.send(Buffer.from(buffer));
-        } else {
-          return res.status(404).json({ message: "Image not found" });
-        }
+        console.log(`Failed to fetch image: ${decodedUrl}, status: ${imageResponse.status}`);
+        return await servePlaceholderImage(res, "Image not found");
       }
 
       // Set appropriate headers
@@ -809,6 +808,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.setHeader('Content-Type', contentType);
       res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+      res.setHeader('Access-Control-Allow-Origin', '*');
       if (contentLength) {
         res.setHeader('Content-Length', contentLength);
       }
@@ -818,10 +818,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(Buffer.from(buffer));
     } catch (error: any) {
       console.error('Image proxy error:', error.message);
-      res.status(500).json({ message: "Failed to fetch image" });
+      return await servePlaceholderImage(res, "Failed to load");
     }
   });
 
+  // Helper function to serve placeholder image
+  async function servePlaceholderImage(res: any, text: string = "No Cover") {
+    try {
+      const placeholderUrl = `https://via.placeholder.com/400x600/1a1a1a/ffffff?text=${encodeURIComponent(text)}`;
+      const placeholderResponse = await fetch(placeholderUrl);
+      
+      if (placeholderResponse.ok) {
+        const contentType = placeholderResponse.headers.get('content-type') || 'image/png';
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache placeholder for 1 hour
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        
+        const buffer = await placeholderResponse.arrayBuffer();
+        return res.send(Buffer.from(buffer));
+      } else {
+        // If even placeholder fails, generate a simple SVG
+        const svgPlaceholder = `<svg width="400" height="600" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100%" height="100%" fill="#1a1a1a"/>
+          <text x="50%" y="50%" font-family="Arial" font-size="16" fill="white" text-anchor="middle" dominant-baseline="middle">${text}</text>
+        </svg>`;
+        
+        res.setHeader('Content-Type', 'image/svg+xml');
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        return res.send(svgPlaceholder);
+      }
+    } catch (error) {
+      // Last resort - return a minimal SVG
+      const minimalSvg = `<svg width="400" height="600" xmlns="http://www.w3.org/2000/svg">
+        <rect width="100%" height="100%" fill="#333333"/>
+        <text x="50%" y="50%" font-family="Arial" font-size="14" fill="white" text-anchor="middle">Manga Cover</text>
+      </svg>`;
+      
+      res.setHeader('Content-Type', 'image/svg+xml');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.send(minimalSvg);
+    }
+  }
 
   const httpServer = createServer(app);
   return httpServer;
