@@ -128,12 +128,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
           "In a world where superpowers are the norm, a boy without powers dreams of becoming a hero.",
           "A young demon slayer seeks to cure his sister who has been turned into a demon."
         ][i % 5],
-        coverUrl: `https://via.placeholder.com/400x600/2D2D2D/FFFFFF?text=${encodeURIComponent([
-          "One Piece", "Naruto", "Attack on Titan", "My Hero Academia", "Demon Slayer",
-          "Dragon Ball", "Death Note", "Fullmetal Alchemist", "Tokyo Ghoul", "Bleach",
-          "Hunter x Hunter", "Jujutsu Kaisen", "Chainsaw Man", "Spy x Family", "Mob Psycho 100",
-          "One Punch Man", "Berserk", "JoJo's Bizarre Adventure", "Vinland Saga", "Monster"
-        ][i % 20])}`,
+        coverUrl: `data:image/svg+xml;base64,${Buffer.from(`
+          <svg width="400" height="600" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="grad${i}" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:${[
+                  '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57',
+                  '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9f43',
+                  '#c8d6e5', '#feca57', '#ff6348', '#2ed573', '#3742fa'
+                ][i % 15]};stop-opacity:1" />
+                <stop offset="100%" style="stop-color:${[
+                  '#ee5a52', '#38ada9', '#3d9cd1', '#78a085', '#e17055',
+                  '#d63031', '#0984e3', '#6c5ce7', '#00b894', '#fdcb6e',
+                  '#a29bfe', '#fd79a8', '#e84393', '#00cec9', '#74b9ff'
+                ][i % 15]};stop-opacity:1" />
+              </linearGradient>
+            </defs>
+            <rect width="400" height="600" fill="url(#grad${i})" />
+            <text x="200" y="250" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white" stroke="rgba(0,0,0,0.5)" stroke-width="1">
+              ${[
+                "One Piece", "Naruto", "Attack on Titan", "My Hero Academia", "Demon Slayer",
+                "Dragon Ball", "Death Note", "Fullmetal Alchemist", "Tokyo Ghoul", "Bleach",
+                "Hunter x Hunter", "Jujutsu Kaisen", "Chainsaw Man", "Spy x Family", "Mob Psycho 100",
+                "One Punch Man", "Berserk", "JoJo's Bizarre Adventure", "Vinland Saga", "Monster"
+              ][i % 20]}
+            </text>
+            <text x="200" y="350" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="rgba(255,255,255,0.8)">
+              Chapter ${Math.floor(Math.random() * 200) + 1}
+            </text>
+            <text x="200" y="380" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="rgba(255,255,255,0.7)">
+              ${['ongoing', 'completed', 'hiatus'][i % 3].toUpperCase()}
+            </text>
+          </svg>
+        `).toString('base64')}`,
         status: ['ongoing', 'completed', 'hiatus'][i % 3],
         year: 2020 + (i % 5),
         contentRating: ['safe', 'suggestive'][i % 2],
