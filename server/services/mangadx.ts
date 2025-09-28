@@ -168,21 +168,22 @@ class MangaDxService {
     order?: string;
   } = {}): Promise<MangaDxResponse<MangaDxChapter[]>> {
     const searchParams = new URLSearchParams();
-    searchParams.append('manga[]', mangaId);
+    searchParams.set('manga', mangaId); // Use 'manga' instead of 'manga[]' for single ID
     
     if (params.limit) searchParams.set('limit', params.limit.toString());
     if (params.offset) searchParams.set('offset', params.offset.toString());
     if (params.translatedLanguage) {
       params.translatedLanguage.forEach(lang => searchParams.append('translatedLanguage[]', lang));
     }
-    if (params.order) {
-      searchParams.set('order[volume]', 'desc');
-      searchParams.set('order[chapter]', 'desc');
-    }
+    
+    // Set proper chapter ordering
+    searchParams.set('order[volume]', 'asc');
+    searchParams.set('order[chapter]', 'asc');
 
     const response = await fetch(`${this.baseUrl}/chapter?${searchParams}`);
     if (!response.ok) {
-      throw new Error(`MangaDx API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`MangaDx API error: ${response.status} ${response.statusText} - ${errorText.slice(0, 200)}`);
     }
     return await response.json();
   }

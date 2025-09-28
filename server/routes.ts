@@ -98,7 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Manga routes (Using fallback data due to API connectivity issues)
+  // Manga routes
   app.get("/api/manga", async (req, res) => {
     try {
       const {
@@ -112,79 +112,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
         contentRating = ['safe', 'suggestive']
       } = req.query;
 
-      // Generate sample manga data (MangaDX API temporarily unavailable)
-      const sampleMangaData = Array.from({ length: Number(limit) }, (_, i) => ({
-        id: `sample-${i + Number(offset)}`,
-        title: [
-          "One Piece", "Naruto", "Attack on Titan", "My Hero Academia", "Demon Slayer",
-          "Dragon Ball", "Death Note", "Fullmetal Alchemist", "Tokyo Ghoul", "Bleach",
-          "Hunter x Hunter", "Jujutsu Kaisen", "Chainsaw Man", "Spy x Family", "Mob Psycho 100",
-          "One Punch Man", "Berserk", "JoJo's Bizarre Adventure", "Vinland Saga", "Monster"
-        ][i % 20],
-        description: [
-          "Follow the adventures of Monkey D. Luffy and his crew as they search for the legendary One Piece treasure.",
-          "The story of Naruto Uzumaki, a young ninja who seeks recognition and dreams of becoming the Hokage.",
-          "Humanity fights for survival against giant humanoid creatures called Titans.",
-          "In a world where superpowers are the norm, a boy without powers dreams of becoming a hero.",
-          "A young demon slayer seeks to cure his sister who has been turned into a demon."
-        ][i % 5],
-        coverUrl: `data:image/svg+xml;base64,${Buffer.from(`
-          <svg width="400" height="600" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="grad${i}" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:${[
-                  '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#feca57',
-                  '#ff9ff3', '#54a0ff', '#5f27cd', '#00d2d3', '#ff9f43',
-                  '#c8d6e5', '#feca57', '#ff6348', '#2ed573', '#3742fa'
-                ][i % 15]};stop-opacity:1" />
-                <stop offset="100%" style="stop-color:${[
-                  '#ee5a52', '#38ada9', '#3d9cd1', '#78a085', '#e17055',
-                  '#d63031', '#0984e3', '#6c5ce7', '#00b894', '#fdcb6e',
-                  '#a29bfe', '#fd79a8', '#e84393', '#00cec9', '#74b9ff'
-                ][i % 15]};stop-opacity:1" />
-              </linearGradient>
-            </defs>
-            <rect width="400" height="600" fill="url(#grad${i})" />
-            <text x="200" y="250" font-family="Arial, sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="white" stroke="rgba(0,0,0,0.5)" stroke-width="1">
-              ${[
-                "One Piece", "Naruto", "Attack on Titan", "My Hero Academia", "Demon Slayer",
-                "Dragon Ball", "Death Note", "Fullmetal Alchemist", "Tokyo Ghoul", "Bleach",
-                "Hunter x Hunter", "Jujutsu Kaisen", "Chainsaw Man", "Spy x Family", "Mob Psycho 100",
-                "One Punch Man", "Berserk", "JoJo's Bizarre Adventure", "Vinland Saga", "Monster"
-              ][i % 20]}
-            </text>
-            <text x="200" y="350" font-family="Arial, sans-serif" font-size="16" text-anchor="middle" fill="rgba(255,255,255,0.8)">
-              Chapter ${Math.floor(Math.random() * 200) + 1}
-            </text>
-            <text x="200" y="380" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="rgba(255,255,255,0.7)">
-              ${['ongoing', 'completed', 'hiatus'][i % 3].toUpperCase()}
-            </text>
-          </svg>
-        `).toString('base64')}`,
-        status: ['ongoing', 'completed', 'hiatus'][i % 3],
-        year: 2020 + (i % 5),
-        contentRating: ['safe', 'suggestive'][i % 2],
-        genres: [
-          ['Action', 'Adventure'], ['Action', 'Supernatural'], ['Action', 'Drama'], 
-          ['Superhero', 'Action'], ['Action', 'Supernatural'], ['Action', 'Martial Arts'],
-          ['Psychological', 'Supernatural'], ['Adventure', 'Drama'], ['Horror', 'Supernatural'],
-          ['Action', 'Supernatural'], ['Adventure', 'Supernatural'], ['Action', 'Supernatural'],
-          ['Action', 'Horror'], ['Comedy', 'Action'], ['Action', 'Comedy'], ['Action', 'Comedy'],
-          ['Action', 'Dark Fantasy'], ['Adventure', 'Supernatural'], ['Historical', 'Drama'], ['Psychological', 'Thriller']
-        ][i % 20],
-        authors: [{ id: `author-${i}`, name: `Author ${i + 1}`, type: 'author' }],
-        updatedAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-        latestChapter: `Chapter ${Math.floor(Math.random() * 200) + 1}`,
+      let result;
+      
+      // If search parameter is provided, use search endpoint
+      if (search) {
+        result = await mangaDxService.searchManga(search as string, {
+          limit: Number(limit),
+          offset: Number(offset),
+          includes: ['cover_art', 'author', 'artist']
+        });
+      } else {
+        // Use manga list endpoint with filters
+        // Handle sorting: if order is asc/desc, use for updatedAt; otherwise map specific fields
+        let orderParam: string = 'desc';
+        const orderStr = order as string;
+        if (['asc', 'desc'].includes(orderStr)) {
+          orderParam = orderStr;
+        } else if (['title', 'year'].includes(orderStr)) {
+          orderParam = 'desc'; // Default direction for specific fields
+        }
+
+        result = await mangaDxService.getMangaList({
+          limit: Number(limit),
+          offset: Number(offset),
+          order: orderParam,
+          includes: ['cover_art', 'author', 'artist'],
+          hasAvailableChapters: true,
+          contentRating: Array.isArray(contentRating) ? contentRating as string[] : [contentRating as string],
+          status: status ? (Array.isArray(status) ? status as string[] : [status as string]) : undefined,
+          tags: tags ? (Array.isArray(tags) ? tags as string[] : [tags as string]) : undefined,
+          excludedTags: excludedTags ? (Array.isArray(excludedTags) ? excludedTags as string[] : [excludedTags as string]) : undefined
+        });
+      }
+
+      // Transform the data to match the expected frontend format
+      const transformedManga = result.data.map(manga => ({
+        id: manga.id,
+        title: mangaDxService.extractTitle(manga),
+        description: mangaDxService.extractDescription(manga),
+        coverUrl: mangaDxService.extractCoverArt(manga),
+        status: manga.attributes.status,
+        year: manga.attributes.year,
+        contentRating: manga.attributes.contentRating,
+        genres: mangaDxService.extractGenres(manga),
+        authors: mangaDxService.extractAuthors(manga),
+        updatedAt: manga.attributes.updatedAt,
+        latestChapter: manga.attributes.latestUploadedChapter,
+        availableLanguages: manga.attributes.availableTranslatedLanguages,
       }));
 
       res.json({
-        data: sampleMangaData,
-        total: 10000,
-        limit: Number(limit),
-        offset: Number(offset),
+        data: transformedManga,
+        total: result.total || transformedManga.length,
+        limit: result.limit || Number(limit),
+        offset: result.offset || Number(offset),
       });
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error('Error fetching manga list:', error.message);
+      res.status(500).json({ message: `Failed to fetch manga: ${error.message}` });
     }
   });
 
@@ -224,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit: Number(limit),
         offset: Number(offset),
         translatedLanguage: Array.isArray(translatedLanguage) ? translatedLanguage as string[] : [translatedLanguage as string],
-        order: 'desc'
+        order: 'asc'
       });
 
       const transformedChapters = result.data.map(chapter => ({
@@ -245,7 +230,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         offset: result.offset,
       });
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      console.error(`Error fetching chapters for manga ${req.params.id}:`, error.message);
+      
+      // If it's a MangaDx API error, provide more graceful handling
+      if (error.message.includes('MangaDx API error: 400')) {
+        // Return empty result for 400 errors (might be no chapters available)
+        res.json({
+          data: [],
+          total: 0,
+          limit: Number(req.query.limit || 100),
+          offset: Number(req.query.offset || 0),
+        });
+      } else if (error.message.includes('MangaDx API error: 404')) {
+        res.status(404).json({ message: "Manga not found or no chapters available" });
+      } else {
+        res.status(500).json({ message: `Failed to fetch chapters: ${error.message}` });
+      }
     }
   });
 
