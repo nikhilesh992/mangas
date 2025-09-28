@@ -132,7 +132,7 @@ export default function Home() {
                         id={rating}
                         checked={searchParams.contentRating?.includes(rating) || false}
                         onCheckedChange={(checked) => {
-                          const current = searchParams.contentRating || ["safe", "suggestive"];
+                          const current = searchParams.contentRating || [];
                           if (checked) {
                             handleFilterChange("contentRating", [...current, rating]);
                           } else {
@@ -290,7 +290,7 @@ export default function Home() {
                   <Button
                     variant="outline"
                     disabled={currentPage === 1}
-                    onClick={() => handlePageChange((currentPage - 2) * (searchParams.limit || 20))}
+                    onClick={() => handlePageChange((currentPage - 1 - 1) * (searchParams.limit || 20))}
                     data-testid="prev-page"
                   >
                     Previous
@@ -315,7 +315,7 @@ export default function Home() {
                   <Button
                     variant="outline"
                     disabled={currentPage === totalPages}
-                    onClick={() => handlePageChange(currentPage * (searchParams.limit || 20))}
+                    onClick={() => handlePageChange((currentPage + 1 - 1) * (searchParams.limit || 20))}
                     data-testid="next-page"
                   >
                     Next
