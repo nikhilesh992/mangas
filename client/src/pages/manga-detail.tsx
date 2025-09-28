@@ -1,15 +1,16 @@
 import { useParams, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Heart, BookOpen, Eye, Calendar, Tag } from "lucide-react";
+import { Heart, BookOpen, Eye, Calendar, Tag, Play, SkipForward } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { MangaCard } from "@/components/manga/manga-card";
-import { mangaApi, favoritesApi } from "@/lib/api";
+import { mangaApi, favoritesApi, progressApi } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import type { Chapter } from "@/lib/types";
 
 export default function MangaDetail() {
   const { id } = useParams<{ id: string }>();
@@ -42,6 +43,12 @@ export default function MangaDetail() {
       limit: 8 
     }),
     enabled: !!manga?.genres?.length,
+  });
+
+  const { data: readingProgress } = useQuery({
+    queryKey: ["/api/reading-progress"],
+    queryFn: progressApi.getProgress,
+    enabled: isAuthenticated,
   });
 
   const addFavoriteMutation = useMutation({
@@ -101,6 +108,17 @@ export default function MangaDetail() {
 
   const isFavorited = favorites?.some(fav => fav.mangaId === manga.id);
   const chaptersList = chapters?.data || [];
+  
+  // Helper functions
+  const isChapterRead = (chapterId: string) => {
+    return readingProgress?.some(progress => 
+      progress.chapterId === chapterId && progress.completed
+    ) || false;
+  };
+  
+  // Get first and latest chapters (remember: chapters are now sorted desc from API)
+  const latestChapter = chaptersList[0]; // First in desc order = latest
+  const firstChapter = chaptersList[chaptersList.length - 1]; // Last in desc order = first
 
   const handleFavoriteToggle = () => {
     if (isFavorited) {
@@ -141,27 +159,46 @@ export default function MangaDetail() {
                 </p>
               )}
               
-              <div className="flex gap-2 mb-4">
-                <Button 
-                  asChild 
-                  className="flex-1" 
-                  disabled={chaptersList.length === 0}
-                  data-testid="read-now-button"
-                >
-                  <Link href={chaptersList[0] ? `/reader/${chaptersList[0].id}` : "#"}>
-                    <BookOpen className="h-4 w-4 mr-2" />
-                    Read Now
-                  </Link>
-                </Button>
+              <div className="space-y-3 mb-4">
+                {/* Navigation Buttons */}
+                <div className="flex gap-2">
+                  <Button 
+                    asChild 
+                    className="flex-1" 
+                    disabled={!firstChapter}
+                    data-testid="start-first-chapter-button"
+                  >
+                    <Link href={firstChapter ? `/reader/${firstChapter.id}` : "#"}>
+                      <Play className="h-4 w-4 mr-2" />
+                      Start from Chapter 1
+                    </Link>
+                  </Button>
+                  
+                  <Button 
+                    asChild 
+                    variant="secondary"
+                    className="flex-1" 
+                    disabled={!latestChapter}
+                    data-testid="read-latest-chapter-button"
+                  >
+                    <Link href={latestChapter ? `/reader/${latestChapter.id}` : "#"}>
+                      <SkipForward className="h-4 w-4 mr-2" />
+                      Read Latest Chapter
+                    </Link>
+                  </Button>
+                </div>
                 
+                {/* Favorite Button */}
                 {isAuthenticated && (
                   <Button
                     variant="outline"
                     onClick={handleFavoriteToggle}
                     disabled={addFavoriteMutation.isPending || removeFavoriteMutation.isPending}
+                    className="w-full"
                     data-testid="favorite-toggle-button"
                   >
-                    <Heart className={`h-4 w-4 ${isFavorited ? "fill-current text-red-500" : ""}`} />
+                    <Heart className={`h-4 w-4 mr-2 ${isFavorited ? "fill-current text-red-500" : ""}`} />
+                    {isFavorited ? "Remove from Favorites" : "Add to Favorites"}
                   </Button>
                 )}
               </div>
@@ -263,34 +300,64 @@ export default function MangaDetail() {
                 </div>
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto scroll-container" data-testid="chapters-list">
-                  {chaptersList.map((chapter) => (
-                    <Link 
-                      key={chapter.id} 
-                      href={`/reader/${chapter.id}`}
-                      data-testid={`chapter-${chapter.id}`}
-                    >
-                      <div className="flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors">
-                        <div className="flex-1">
-                          <h4 className="font-medium text-foreground">
-                            Chapter {chapter.chapter}
-                            {chapter.title && `: ${chapter.title}`}
-                          </h4>
-                          <p className="text-sm text-muted-foreground mt-1 flex items-center">
-                            <Calendar className="h-3 w-3 mr-1" />
-                            {new Date(chapter.publishAt).toLocaleDateString()}
-                          </p>
+                  {chaptersList.map((chapter: Chapter) => {
+                    const isRead = isChapterRead(chapter.id);
+                    return (
+                      <Link 
+                        key={chapter.id} 
+                        href={`/reader/${chapter.id}`}
+                        data-testid={`chapter-${chapter.id}`}
+                      >
+                        <div className={`flex items-center justify-between p-3 hover:bg-muted/50 rounded-lg cursor-pointer transition-colors border-l-4 ${
+                          isRead 
+                            ? "border-red-500 bg-red-50 dark:bg-red-950/20" 
+                            : "border-transparent"
+                        }`}>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className={`font-medium ${
+                                isRead 
+                                  ? "text-red-600 dark:text-red-400" 
+                                  : "text-foreground"
+                              }`}>
+                                Chapter {chapter.chapter}
+                                {chapter.title && `: ${chapter.title}`}
+                              </h4>
+                              {isRead && (
+                                <Badge variant="secondary" className="text-xs bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
+                                  READ
+                                </Badge>
+                              )}
+                            </div>
+                            <p className={`text-sm mt-1 flex items-center ${
+                              isRead 
+                                ? "text-red-500 dark:text-red-400" 
+                                : "text-muted-foreground"
+                            }`}>
+                              <Calendar className="h-3 w-3 mr-1" />
+                              {new Date(chapter.publishAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <span className={`text-sm ${
+                              isRead 
+                                ? "text-red-500 dark:text-red-400" 
+                                : "text-muted-foreground"
+                            }`}>
+                              {chapter.language.toUpperCase()}
+                            </span>
+                            <span className={`text-sm ${
+                              isRead 
+                                ? "text-red-500 dark:text-red-400" 
+                                : "text-muted-foreground"
+                            }`}>
+                              {chapter.pages} pages
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center space-x-3">
-                          <span className="text-sm text-muted-foreground">
-                            {chapter.language.toUpperCase()}
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            {chapter.pages} pages
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
@@ -305,7 +372,7 @@ export default function MangaDetail() {
                   Related Manga
                 </h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="related-manga-grid">
-                  {relatedManga.data.slice(0, 4).map((relatedItem) => (
+                  {relatedManga.data.slice(0, 4).map((relatedItem: any) => (
                     <MangaCard
                       key={relatedItem.id}
                       manga={relatedItem}

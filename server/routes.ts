@@ -221,7 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         limit: Number(limit),
         offset: Number(offset),
         translatedLanguage: Array.isArray(translatedLanguage) ? translatedLanguage as string[] : [translatedLanguage as string],
-        order: 'asc'
+        order: 'desc'  // Changed to desc for latest to oldest ordering
       });
 
       const transformedChapters = result.data.map(chapter => ({
