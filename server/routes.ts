@@ -146,20 +146,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Transform the data to match the expected frontend format
-      const transformedManga = result.data.map(manga => ({
-        id: manga.id,
-        title: mangaDxService.extractTitle(manga),
-        description: mangaDxService.extractDescription(manga),
-        coverUrl: mangaDxService.extractCoverArt(manga),
-        status: manga.attributes.status,
-        year: manga.attributes.year,
-        contentRating: manga.attributes.contentRating,
-        genres: mangaDxService.extractGenres(manga),
-        authors: mangaDxService.extractAuthors(manga),
-        updatedAt: manga.attributes.updatedAt,
-        latestChapter: manga.attributes.latestUploadedChapter,
-        availableLanguages: manga.attributes.availableTranslatedLanguages,
-      }));
+      const transformedManga = result.data.map(manga => {
+        const originalCoverUrl = mangaDxService.extractCoverArt(manga);
+        const proxiedCoverUrl = (originalCoverUrl && originalCoverUrl.trim() !== '') 
+          ? `/api/image-proxy?url=${encodeURIComponent(originalCoverUrl)}` 
+          : null;
+        
+        return {
+          id: manga.id,
+          title: mangaDxService.extractTitle(manga),
+          description: mangaDxService.extractDescription(manga),
+          coverUrl: proxiedCoverUrl,
+          status: manga.attributes.status,
+          year: manga.attributes.year,
+          contentRating: manga.attributes.contentRating,
+          genres: mangaDxService.extractGenres(manga),
+          authors: mangaDxService.extractAuthors(manga),
+          updatedAt: manga.attributes.updatedAt,
+          latestChapter: manga.attributes.latestUploadedChapter,
+          availableLanguages: manga.attributes.availableTranslatedLanguages,
+        };
+      });
 
       res.json({
         data: transformedManga,
@@ -179,11 +186,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const result = await mangaDxService.getMangaById(id);
       const manga = result.data;
 
+      const originalCoverUrl = mangaDxService.extractCoverArt(manga);
+      const proxiedCoverUrl = (originalCoverUrl && originalCoverUrl.trim() !== '') 
+        ? `/api/image-proxy?url=${encodeURIComponent(originalCoverUrl)}` 
+        : null;
+
       const transformedManga = {
         id: manga.id,
         title: mangaDxService.extractTitle(manga),
         description: mangaDxService.extractDescription(manga),
-        coverUrl: mangaDxService.extractCoverArt(manga),
+        coverUrl: proxiedCoverUrl,
         status: manga.attributes.status,
         year: manga.attributes.year,
         contentRating: manga.attributes.contentRating,
@@ -258,9 +270,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]);
 
       const chapter = chapterResult.data;
-      const images = imagesResult.chapter.data.map(filename => 
-        mangaDxService.buildImageUrl(imagesResult.baseUrl, imagesResult.chapter.hash, filename)
-      );
+      const images = imagesResult.chapter.data.map(filename => {
+        const originalImageUrl = mangaDxService.buildImageUrl(imagesResult.baseUrl, imagesResult.chapter.hash, filename);
+        return `/api/image-proxy?url=${encodeURIComponent(originalImageUrl)}`;
+      });
 
       res.json({
         id: chapter.id,
@@ -640,6 +653,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Image proxy route to handle CORS issues with MangaDx images
+  app.get("/api/image-proxy", async (req, res) => {
+    try {
+      const { url } = req.query;
+      
+      if (!url || typeof url !== 'string' || url.trim() === '') {
+        return res.status(400).json({ message: "URL parameter is required" });
+      }
+
+      // Decode the URL in case it's URL-encoded
+      const decodedUrl = decodeURIComponent(url);
+      
+      // Only allow MangaDx URLs for security  
+      const isMangaDxUrl = decodedUrl.includes('uploads.mangadex.org') || decodedUrl.includes('mangadex.network') || decodedUrl.includes('.mangadex.org') || decodedUrl.includes('.mangadex.network');
+      if (!isMangaDxUrl) {
+        return res.status(403).json({ message: "Only MangaDx URLs are allowed" });
+      }
+
+      const imageResponse = await fetch(decodedUrl);
+      
+      if (!imageResponse.ok) {
+        return res.status(404).json({ message: "Image not found" });
+      }
+
+      // Set appropriate headers
+      const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+      const contentLength = imageResponse.headers.get('content-length');
+      
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+      if (contentLength) {
+        res.setHeader('Content-Length', contentLength);
+      }
+
+      // Stream the image
+      const buffer = await imageResponse.arrayBuffer();
+      res.send(Buffer.from(buffer));
+    } catch (error: any) {
+      console.error('Image proxy error:', error.message);
+      res.status(500).json({ message: "Failed to fetch image" });
     }
   });
 
