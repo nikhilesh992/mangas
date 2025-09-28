@@ -296,8 +296,42 @@
   
   /* Enhanced link hover states */
   a:hover {
-    color: hsl(187, 78%, 54%);
+    color: hsl(195, 85%, 60%);
     text-decoration: underline;
-    text-decoration-color: hsla(187, 78%, 54%, 0.6);
+    text-decoration-color: hsla(195, 85%, 60%, 0.6);
+  }
+  
+  /* Fix dropdown transparency issues */
+  [data-radix-popper-content-wrapper] {
+    z-index: 50 !important;
+  }
+  
+  [data-radix-select-content] {
+    background-color: hsl(var(--popover)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  
+  [data-radix-select-viewport] {
+    background-color: hsl(var(--popover)) !important;
+  }
+  
+  [data-radix-select-item] {
+    background-color: transparent !important;
+  }
+  
+  [data-radix-select-item][data-highlighted] {
+    background-color: hsl(var(--accent)) !important;
+    color: hsl(var(--accent-foreground)) !important;
+  }
+  
+  /* Fix other dropdown components */
+  [data-radix-dropdown-menu-content],
+  [data-radix-popover-content] {
+    background-color: hsl(var(--popover)) !important;
+    border: 1px solid hsl(var(--border)) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 }
