@@ -19,7 +19,6 @@ export default function MangaDetail() {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [expandedLanguages, setExpandedLanguages] = useState<Set<string>>(new Set());
   const [languageSortOrder, setLanguageSortOrder] = useState<Record<string, 'asc' | 'desc'>>({});
   const [isInitialized, setIsInitialized] = useState(false);
@@ -357,23 +356,8 @@ export default function MangaDetail() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-foreground flex items-center">
                   <BookOpen className="h-4 w-4 mr-2" />
-                  Chapters
+                  Chapters ({chaptersList.length})
                 </h3>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-                    className="flex items-center gap-2"
-                    data-testid="sort-toggle"
-                  >
-                    <ArrowUpDown className="h-3 w-3" />
-                    {sortOrder === 'desc' ? 'Latest First' : 'Oldest First'}
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    {chaptersList.length} chapters
-                  </span>
-                </div>
               </div>
 
 
