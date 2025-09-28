@@ -347,6 +347,15 @@ export default function Home() {
                   <Button
                     variant="outline"
                     disabled={currentPage === 1}
+                    onClick={() => handlePageChange(0)}
+                    data-testid="first-page"
+                  >
+                    First
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    disabled={currentPage === 1}
                     onClick={() => handlePageChange((currentPage - 1 - 1) * (searchParams.limit || 20))}
                     data-testid="prev-page"
                   >
@@ -376,6 +385,15 @@ export default function Home() {
                     data-testid="next-page"
                   >
                     Next
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    disabled={currentPage === totalPages}
+                    onClick={() => handlePageChange((totalPages - 1) * (searchParams.limit || 20))}
+                    data-testid="last-page"
+                  >
+                    Last
                   </Button>
                 </div>
               )}
