@@ -18,12 +18,24 @@ interface MangaReaderProps {
   chapter: Chapter;
 }
 
-type ViewMode = "vertical" | "horizontal" | "fit-width" | "fit-height";
+type ViewMode = "single" | "double" | "vertical";
 
 export function MangaReader({ chapter }: MangaReaderProps) {
   const [, navigate] = useLocation();
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
+
+  // Early return if chapter is not loaded
+  if (!chapter) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" data-testid="reader-loading">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading chapter...</p>
+        </div>
+      </div>
+    );
+  }
   
   // Fetch all chapters for this manga to enable chapter navigation
   const { data: allChapters } = useQuery({
@@ -33,10 +45,13 @@ export function MangaReader({ chapter }: MangaReaderProps) {
   });
   
   const [currentPage, setCurrentPage] = useState(1);
-  const [viewMode, setViewMode] = useState<ViewMode>("vertical");
-  const [zoom, setZoom] = useState(100);
+  const [viewMode, setViewMode] = useState<"single" | "double" | "vertical">("single");
   const [autoProgress, setAutoProgress] = useState(true);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+  const [controlsTimeout, setControlsTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [zoom, setZoom] = useState(100);
+  const [pageViewMode, setPageViewMode] = useState<"single" | "full">("single");
   
   const containerRef = useRef<HTMLDivElement>(null);
   const pageRefs = useRef<(HTMLImageElement | null)[]>([]);
@@ -45,10 +60,12 @@ export function MangaReader({ chapter }: MangaReaderProps) {
   const totalPages = images.length;
 
   // Find current chapter index and adjacent chapters
+  // Note: chapters are returned in descending order from API (latest first)
   const chapters = allChapters?.data || [];
   const currentChapterIndex = chapters.findIndex((ch: Chapter) => ch.id === chapter.id);
-  const previousChapter = currentChapterIndex > 0 ? chapters[currentChapterIndex - 1] : null;
-  const nextChapter = currentChapterIndex < chapters.length - 1 ? chapters[currentChapterIndex + 1] : null;
+  // In descending order: previous chapter has higher index, next chapter has lower index
+  const previousChapter = currentChapterIndex < chapters.length - 1 ? chapters[currentChapterIndex + 1] : null;
+  const nextChapter = currentChapterIndex > 0 ? chapters[currentChapterIndex - 1] : null;
 
   // Update reading progress
   const updateProgressMutation = useMutation({
@@ -71,9 +88,44 @@ export function MangaReader({ chapter }: MangaReaderProps) {
     }
   }, [currentPage, isAuthenticated, autoProgress, chapter.id, chapter.mangaId, totalPages]);
 
+  // Auto-hide controls functionality
+  const showControlsTemporarily = () => {
+    setShowControls(true);
+    if (controlsTimeout) {
+      clearTimeout(controlsTimeout);
+    }
+    const timeout = setTimeout(() => {
+      setShowControls(false);
+    }, 3000); // Hide after 3 seconds
+    setControlsTimeout(timeout);
+  };
+
+  // Handle mouse movement to show controls
+  useEffect(() => {
+    const handleMouseMove = () => {
+      showControlsTemporarily();
+    };
+
+    const handleClick = () => {
+      showControlsTemporarily();
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("click", handleClick);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("click", handleClick);
+      if (controlsTimeout) {
+        clearTimeout(controlsTimeout);
+      }
+    };
+  }, [controlsTimeout]);
+
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
+      showControlsTemporarily();
       switch (event.key) {
         case "ArrowLeft":
         case "a":
@@ -112,7 +164,7 @@ export function MangaReader({ chapter }: MangaReaderProps) {
 
     document.addEventListener("keydown", handleKeyPress);
     return () => document.removeEventListener("keydown", handleKeyPress);
-  }, [currentPage, viewMode]);
+  }, [currentPage, viewMode, controlsTimeout]);
 
   // Handle scroll for vertical mode
   useEffect(() => {
@@ -178,31 +230,35 @@ export function MangaReader({ chapter }: MangaReaderProps) {
     }
   };
 
-  const getImageStyle = () => {
-    const baseStyle: React.CSSProperties = {
-      transform: `scale(${zoom / 100})`,
-      transformOrigin: "top center",
-    };
-
-    switch (viewMode) {
-      case "fit-width":
-        return { ...baseStyle, width: "100%", height: "auto" };
-      case "fit-height":
-        return { ...baseStyle, height: "100vh", width: "auto" };
-      case "horizontal":
-        return { ...baseStyle, maxWidth: "100%", maxHeight: "100vh" };
-      default: // vertical
-        return { ...baseStyle, width: "100%", height: "auto" };
+  const handlePreviousChapter = () => {
+    if (previousChapter) {
+      navigate(`/reader/${previousChapter.id}`);
     }
   };
 
+  const handleNextChapter = () => {
+    if (nextChapter) {
+      navigate(`/reader/${nextChapter.id}`);
+    }
+  };
+
+  const getImageStyle = () => ({
+    transform: `scale(${zoom / 100})`, // Fixed zoom scaling
+    transformOrigin: 'center top',
+    width: '100%', // 100% - 15% left - 15% right = 70%
+    maxWidth: '800px',
+    height: 'auto',
+    marginLeft: '0%',
+    marginRight: '15%',
+    display: 'block',
+  });
+
   const getContainerClass = () => {
     switch (viewMode) {
-      case "horizontal":
+      case "single":
         return "flex items-center justify-center min-h-screen";
-      case "fit-width":
-      case "fit-height":
-        return "flex items-center justify-center min-h-screen";
+      case "double":
+        return "flex items-center justify-center min-h-screen space-x-2";
       default: // vertical
         return "space-y-2";
     }
@@ -255,7 +311,7 @@ export function MangaReader({ chapter }: MangaReaderProps) {
                 <input
                   type="number"
                   value={currentPage}
-                  onChange={(e) => handlePageJump(parseInt(e.target.value))}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handlePageJump(parseInt(e.target.value))}
                   min="1"
                   max={totalPages}
                   className="w-16 bg-input border border-border rounded px-2 py-1 text-center text-xs focus:outline-none focus:ring-2 focus:ring-ring"
@@ -281,17 +337,32 @@ export function MangaReader({ chapter }: MangaReaderProps) {
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="view-mode">View Mode</Label>
-                      <Select value={viewMode} onValueChange={(value) => setViewMode(value as ViewMode)}>
+                      <Select value={viewMode} onValueChange={(value: string) => setViewMode(value as ViewMode)}>
                         <SelectTrigger data-testid="view-mode-select">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="vertical">Vertical Scroll</SelectItem>
-                          <SelectItem value="horizontal">Horizontal Pages</SelectItem>
-                          <SelectItem value="fit-width">Fit Width</SelectItem>
-                          <SelectItem value="fit-height">Fit Height</SelectItem>
+                          <SelectItem value="single">Single Page</SelectItem>
+                          <SelectItem value="double">Double Page</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="page-view-mode">Page Navigation</Label>
+                      <Select value={pageViewMode} onValueChange={(value: string) => setPageViewMode(value as "single" | "full")}>
+                        <SelectTrigger data-testid="page-view-mode-select">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="single">Single Page Navigation</SelectItem>
+                          <SelectItem value="full">Full Chapter View</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {pageViewMode === "single" ? "Show page navigation controls" : "Hide page navigation, show all pages"}
+                      </p>
                     </div>
                     
                     <div>
@@ -307,7 +378,7 @@ export function MangaReader({ chapter }: MangaReaderProps) {
                         </Button>
                         <Slider
                           value={[zoom]}
-                          onValueChange={([value]) => setZoom(value)}
+                          onValueChange={([value]: number[]) => setZoom(value)}
                           min={50}
                           max={200}
                           step={25}
@@ -358,127 +429,58 @@ export function MangaReader({ chapter }: MangaReaderProps) {
 
       {/* Reader Content */}
       <div className="container mx-auto max-w-4xl px-4" data-testid="reader-content">
-        <div 
-          ref={containerRef}
-          className={`py-8 ${getContainerClass()}`}
-        >
-          {viewMode === "vertical" ? (
-            // Vertical scroll mode - show all pages
-            images.map((imageUrl, index) => (
+        <div className={getContainerClass()}>
+          {/* Always show all images in vertical scroll mode */}
+          <div className="space-y-2 px-4">
+            {images.map((imageUrl, index) => (
               <img
                 key={index}
-                ref={(el) => pageRefs.current[index] = el}
+                ref={(el) => (pageRefs.current[index] = el)}
                 src={imageUrl}
                 alt={`Page ${index + 1}`}
-                style={getImageStyle()}
                 className="reader-page mx-auto block rounded shadow-lg"
-                loading={index < 3 ? "eager" : "lazy"}
-                onError={(e) => {
-                  console.error(`Failed to load page ${index + 1}:`, imageUrl);
-                  e.currentTarget.alt = `Failed to load page ${index + 1}`;
-                }}
+                style={getImageStyle()}
+                loading="lazy"
                 data-testid={`reader-page-${index + 1}`}
               />
-            ))
-          ) : (
-            // Horizontal/fit modes - show current page only
-            <img
-              ref={(el) => pageRefs.current[currentPage - 1] = el}
-              src={images[currentPage - 1]}
-              alt={`Page ${currentPage}`}
-              style={getImageStyle()}
-              className="reader-page mx-auto block rounded shadow-lg"
-              onError={(e) => {
-                console.error(`Failed to load page ${currentPage}:`, images[currentPage - 1]);
-                e.currentTarget.alt = `Failed to load page ${currentPage}`;
-              }}
-              data-testid={`reader-current-page`}
-            />
-          )}
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Reader Navigation */}
-      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40" data-testid="reader-navigation">
-        <div className="flex flex-col gap-2 items-center">
-          {/* Chapter Navigation */}
+      {/* Chapter Navigation - Only show on hover/interaction */}
+      {showControls && (
+        <div className={`fixed top-16 left-1/2 transform -translate-x-1/2 z-40 transition-opacity duration-300 ${showControls ? "opacity-100" : "opacity-0"}`} data-testid="reader-top-navigation">
           <Card className="bg-card/90 backdrop-blur-sm">
             <CardContent className="px-4 py-2 flex items-center space-x-3">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => previousChapter && navigate(`/reader/${previousChapter.id}`)}
+                onClick={handlePreviousChapter}
                 disabled={!previousChapter}
-                data-testid="prev-chapter-button"
                 title={previousChapter ? `Previous: Ch. ${previousChapter.chapter}` : "No previous chapter"}
+                data-testid="prev-chapter-button"
               >
                 <SkipBack className="h-4 w-4" />
               </Button>
               
               <div className="text-xs text-muted-foreground px-2" data-testid="chapter-indicator">
-                Ch. {chapter.chapter}
+                Ch. {chapter?.chapter || "N/A"}
               </div>
               
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => nextChapter && navigate(`/reader/${nextChapter.id}`)}
+                onClick={handleNextChapter}
                 disabled={!nextChapter}
-                data-testid="next-chapter-button"
                 title={nextChapter ? `Next: Ch. ${nextChapter.chapter}` : "No next chapter"}
+                data-testid="next-chapter-button"
               >
                 <SkipForward className="h-4 w-4" />
               </Button>
             </CardContent>
           </Card>
-          
-          {/* Page Navigation */}
-          <Card className="bg-card/90 backdrop-blur-sm">
-            <CardContent className="px-6 py-3 flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handlePreviousPage}
-                disabled={currentPage === 1}
-                data-testid="prev-page-button"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              
-              <div className="flex items-center space-x-2 text-sm" data-testid="page-indicator">
-                <span className="text-foreground font-medium">
-                  {currentPage} / {totalPages}
-                </span>
-              </div>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages}
-                data-testid="next-page-button"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </CardContent>
-          </Card>
         </div>
-      </div>
-
-      {/* Touch/Click areas for mobile navigation */}
-      {viewMode !== "vertical" && (
-        <>
-          <div
-            className="fixed left-0 top-0 w-1/3 h-full z-30 cursor-pointer"
-            onClick={handlePreviousPage}
-            data-testid="touch-area-prev"
-          />
-          <div
-            className="fixed right-0 top-0 w-1/3 h-full z-30 cursor-pointer"
-            onClick={handleNextPage}
-            data-testid="touch-area-next"
-          />
-        </>
       )}
     </div>
   );

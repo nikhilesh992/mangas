@@ -1,11 +1,14 @@
-import { useParams } from "wouter";
+import { useParams, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Home } from "lucide-react";
 import { MangaReader } from "@/components/manga/manga-reader";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { mangaApi } from "@/lib/api";
 
 export default function Reader() {
   const { chapterId } = useParams<{ chapterId: string }>();
+  const [, navigate] = useLocation();
 
   const { data: chapter, isLoading, error } = useQuery({
     queryKey: ["/api/chapter", chapterId],
@@ -24,9 +27,29 @@ export default function Reader() {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center" data-testid="reader-error">
-        <div className="text-center">
+        <div className="text-center max-w-md mx-auto p-6">
           <h1 className="text-2xl font-bold text-foreground mb-2">Chapter Not Found</h1>
-          <p className="text-muted-foreground">The chapter you're looking for doesn't exist or is unavailable.</p>
+          <p className="text-muted-foreground mb-6">The chapter you're looking for doesn't exist or is unavailable.</p>
+          
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button 
+              onClick={() => navigate("/")}
+              variant="default"
+              className="flex items-center gap-2"
+            >
+              <Home className="h-4 w-4" />
+              Go Home
+            </Button>
+            
+            <Button 
+              onClick={() => window.history.back()}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Go Back
+            </Button>
+          </div>
         </div>
       </div>
     );

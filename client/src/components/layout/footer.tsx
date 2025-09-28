@@ -15,16 +15,16 @@ export function Footer() {
           <div data-testid="footer-quick-links">
             <h4 className="font-semibold text-foreground mb-3">Quick Links</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
-              <Link href="/browse" className="block hover:text-primary transition-colors" data-testid="footer-browse">
+              <Link href="/" className="block hover:text-primary transition-colors" data-testid="footer-browse">
                 Browse Manga
               </Link>
-              <Link href="/browse?order=latest" className="block hover:text-primary transition-colors" data-testid="footer-latest">
+              <Link href="/?order=latest" className="block hover:text-primary transition-colors" data-testid="footer-latest">
                 Latest Updates
               </Link>
-              <Link href="/browse?order=popular" className="block hover:text-primary transition-colors" data-testid="footer-popular">
+              <Link href="/?order=popular" className="block hover:text-primary transition-colors" data-testid="footer-popular">
                 Popular Series
               </Link>
-              <Link href="/browse?random=true" className="block hover:text-primary transition-colors" data-testid="footer-random">
+              <Link href="/?random=true" className="block hover:text-primary transition-colors" data-testid="footer-random">
                 Random Manga
               </Link>
             </div>

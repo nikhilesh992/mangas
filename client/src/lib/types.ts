@@ -24,19 +24,83 @@ export interface Chapter {
   publishAt: string;
   readableAt: string;
   images?: string[];
-  hash?: string;
   baseUrl?: string;
 }
 
 export interface MangaSearchParams {
   search?: string;
-  status?: string[];
   tags?: string[];
   excludedTags?: string[];
+  status?: string[];
   contentRating?: string[];
+  publicationDemographic?: string[];
+  originalLanguage?: string[];
+  translatedLanguage?: string[];
+  year?: number;
   limit?: number;
   offset?: number;
   order?: string;
+  source?: 'mangadx' | 'mangaplus' | 'all';
+}
+
+export interface MangaListResponse {
+  data: Manga[];
+  total: number;
+  offset: number;
+}
+
+export interface AnalyticsEvent {
+  id: string;
+  mangaId: string;
+  mangaTitle: string;
+  eventType: 'view' | 'impression' | 'click' | 'read';
+  page: 'home' | 'detail' | 'reader' | 'search';
+  userId?: string;
+  sessionId: string;
+  timestamp: string;
+  metadata?: {
+    duration?: number;
+    chapterId?: string;
+    searchQuery?: string;
+    position?: number;
+  };
+}
+
+export interface MangaAnalytics {
+  mangaId: string;
+  mangaTitle: string;
+  totalViews: number;
+  totalImpressions: number;
+  totalClicks: number;
+  totalReads: number;
+  uniqueViewers: number;
+  avgViewDuration: number;
+  popularChapters: Array<{
+    chapterId: string;
+    chapterNumber: string;
+    views: number;
+  }>;
+  viewsByPage: {
+    home: number;
+    detail: number;
+    reader: number;
+    search: number;
+  };
+  dailyStats: Array<{
+    date: string;
+    views: number;
+    impressions: number;
+  }>;
+}
+
+export interface AnalyticsFilters {
+  dateFrom?: string;
+  dateTo?: string;
+  mangaId?: string;
+  eventType?: string[];
+  page?: string[];
+  limit?: number;
+  offset?: number;
 }
 
 export interface BlogPost {

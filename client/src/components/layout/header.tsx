@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
-import { Search, Menu, X, User, LogOut } from "lucide-react";
+import { Search, Menu, X, User, LogOut, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -9,6 +9,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -16,19 +17,41 @@ export function Header() {
   const [location, navigate] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState("en");
   const { isAuthenticated, isAdmin, user, logout } = useAuth();
   const isMobile = useIsMobile();
+
+  const languages = [
+    { code: "en", name: "English", flag: "🇺🇸" },
+    { code: "ja", name: "Japanese", flag: "🇯🇵" },
+    { code: "ko", name: "Korean", flag: "🇰🇷" },
+    { code: "zh", name: "Chinese", flag: "🇨🇳" },
+    { code: "es", name: "Spanish", flag: "🇪🇸" },
+    { code: "fr", name: "French", flag: "🇫🇷" },
+    { code: "de", name: "German", flag: "🇩🇪" },
+    { code: "pt-br", name: "Portuguese (BR)", flag: "🇧🇷" },
+    { code: "ru", name: "Russian", flag: "🇷🇺" },
+    { code: "it", name: "Italian", flag: "🇮🇹" },
+  ];
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/browse?search=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
   const handleLogout = () => {
     logout();
     navigate("/");
+  };
+
+  const handleLanguageChange = (languageCode: string) => {
+    setSelectedLanguage(languageCode);
+    // Store in localStorage for persistence
+    localStorage.setItem('selectedLanguage', languageCode);
+    // Refresh current page to apply language filter
+    window.location.reload();
   };
 
   return (
@@ -44,17 +67,10 @@ export function Header() {
             <nav className="hidden md:flex space-x-6" data-testid="main-navigation">
               <Link 
                 href="/" 
-                className={`transition-colors ${location === "/" ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
+                className={`transition-colors ${location === "/" || location.startsWith("/home") ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
                 data-testid="nav-home"
               >
                 Home
-              </Link>
-              <Link 
-                href="/browse" 
-                className={`transition-colors ${location.startsWith("/browse") ? "text-primary" : "text-muted-foreground hover:text-primary"}`}
-                data-testid="nav-browse"
-              >
-                Browse
               </Link>
               <Link 
                 href="/blog" 
@@ -91,10 +107,35 @@ export function Header() {
             )}
 
             {isMobile && (
-              <Button variant="ghost" size="sm" onClick={() => navigate("/browse")} data-testid="mobile-search-button">
+              <Button variant="ghost" size="sm" onClick={() => navigate("/")} data-testid="mobile-search-button">
                 <Search className="h-4 w-4" />
               </Button>
             )}
+
+            {/* Language Selector */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" data-testid="language-selector">
+                  <Globe className="h-4 w-4" />
+                  <span className="ml-2 hidden sm:inline">
+                    {languages.find(lang => lang.code === selectedLanguage)?.flag}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" data-testid="language-menu">
+                {languages.map((language) => (
+                  <DropdownMenuItem 
+                    key={language.code}
+                    onClick={() => handleLanguageChange(language.code)}
+                    className={selectedLanguage === language.code ? "bg-accent" : ""}
+                    data-testid={`language-${language.code}`}
+                  >
+                    <span className="mr-2">{language.flag}</span>
+                    {language.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {isAuthenticated ? (
               <DropdownMenu>
@@ -163,14 +204,6 @@ export function Header() {
                 data-testid="mobile-nav-home"
               >
                 Home
-              </Link>
-              <Link 
-                href="/browse" 
-                className="text-foreground hover:text-primary transition-colors"
-                onClick={() => setIsMenuOpen(false)}
-                data-testid="mobile-nav-browse"
-              >
-                Browse
               </Link>
               <Link 
                 href="/blog" 

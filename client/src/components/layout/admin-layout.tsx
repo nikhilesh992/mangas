@@ -8,7 +8,8 @@ import {
   Users, 
   Settings, 
   Menu,
-  X
+  X,
+  TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -29,7 +30,17 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <div className="min-h-screen flex items-center justify-center" data-testid="admin-access-denied">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
-          <p className="text-muted-foreground">You need admin privileges to access this page.</p>
+          <p className="text-muted-foreground mb-4">You need admin privileges to access this page.</p>
+          <div className="text-sm text-muted-foreground bg-card p-4 rounded-lg border">
+            <p className="font-medium mb-2">Admin Login Credentials:</p>
+            <p><strong>Username:</strong> admin</p>
+            <p><strong>Password:</strong> admin123</p>
+            <div className="mt-3">
+              <a href="/auth/login" className="text-primary hover:underline">
+                Go to Login Page
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -37,6 +48,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   const navigation = [
     { name: "Dashboard", href: "/admin", icon: BarChart3, testId: "admin-nav-dashboard" },
+    { name: "Analytics", href: "/admin/analytics", icon: TrendingUp, testId: "admin-nav-analytics" },
     { name: "API Config", href: "/admin/api-config", icon: Plug, testId: "admin-nav-api" },
     { name: "Accessibility Management", href: "/admin/ads", icon: Accessibility, testId: "admin-nav-ads" },
     { name: "Blog Posts", href: "/admin/blog", icon: FileText, testId: "admin-nav-blog" },

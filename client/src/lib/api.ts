@@ -1,8 +1,9 @@
 import { apiRequest } from "./queryClient";
 import type { 
-  Manga, Chapter, MangaSearchParams, BlogPost, User, 
+  Manga, Chapter, MangaSearchParams, MangaListResponse, BlogPost, User, 
   UserFavorite, ReadingProgress, ApiConfiguration, 
-  AdNetwork, CustomBanner, SiteSetting, DashboardStats 
+  AdNetwork, CustomBanner, SiteSetting, DashboardStats,
+  AnalyticsEvent, AnalyticsFilters
 } from "./types";
 
 // Auth API
@@ -19,24 +20,35 @@ export const authApi = {
 
   getProfile: async () => {
     const response = await apiRequest("GET", "/api/auth/me");
-    return response.json();
-  },
+  }
 };
 
 // Manga API
 export const mangaApi = {
-  searchManga: async (params: MangaSearchParams = {}) => {
+  getMangaList: async (params: MangaSearchParams = {}): Promise<MangaListResponse> => {
     const searchParams = new URLSearchParams();
+    
     Object.entries(params).forEach(([key, value]) => {
-      if (Array.isArray(value)) {
-        value.forEach(v => searchParams.append(`${key}[]`, v));
-      } else if (value !== undefined) {
-        searchParams.set(key, value.toString());
+      if (value !== undefined && value !== null) {
+        if (Array.isArray(value)) {
+          value.forEach(v => searchParams.append(key, v.toString()));
+        } else {
+          searchParams.append(key, value.toString());
+        }
       }
     });
 
-    const response = await apiRequest("GET", `/api/manga?${searchParams}`);
+
+    const response = await fetch(`/api/manga?${searchParams}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch manga: ${response.statusText}`);
+    }
+    
     return response.json();
+  },
+
+  searchManga: async (query: string, params: MangaSearchParams = {}) => {
+    return mangaApi.getMangaList({ ...params, search: query });
   },
 
   getMangaById: async (id: string): Promise<Manga> => {
@@ -44,8 +56,8 @@ export const mangaApi = {
     return response.json();
   },
 
-  getChapters: async (mangaId: string, params: { 
-    limit?: number; 
+  getChapters: async (mangaId: string, params: {
+    limit?: number;
     offset?: number; 
     translatedLanguage?: string[] 
   } = {}) => {
@@ -247,4 +259,47 @@ export const adminApi = {
     const response = await apiRequest("PUT", `/api/admin/settings/${key}`, { value });
     return response.json();
   },
+};
+
+// Analytics API
+export const analyticsApi = {
+  // Track analytics event
+  trackEvent: async (event: Omit<AnalyticsEvent, 'id'>) => {
+    const response = await apiRequest("POST", "/api/analytics/track", event);
+    return response.json();
+  },
+
+  // Get manga analytics (admin only)
+  getMangaAnalytics: async (filters: AnalyticsFilters = {}) => {
+    const searchParams = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        if (Array.isArray(value)) {
+          value.forEach(v => searchParams.append(key, v.toString()));
+        } else {
+          searchParams.append(key, value.toString());
+        }
+      }
+    });
+
+    const response = await apiRequest("GET", `/api/analytics/manga?${searchParams}`);
+    return response.json();
+  },
+
+  // Get top manga by views
+  getTopManga: async (limit: number = 10, dateFrom?: string, dateTo?: string) => {
+    const searchParams = new URLSearchParams();
+    searchParams.set('limit', limit.toString());
+    if (dateFrom) searchParams.set('dateFrom', dateFrom);
+    if (dateTo) searchParams.set('dateTo', dateTo);
+
+    const response = await apiRequest("GET", `/api/analytics/top-manga?${searchParams}`);
+    return response.json();
+  },
+
+  // Get analytics dashboard data
+  getDashboardStats: async () => {
+    const response = await apiRequest("GET", "/api/analytics/dashboard");
+    return response.json();
+  }
 };

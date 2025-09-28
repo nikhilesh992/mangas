@@ -1,5 +1,6 @@
 import { useParams, Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Heart, BookOpen, Eye, Calendar, Tag, Play, SkipForward } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { MangaCard } from "@/components/manga/manga-card";
 import { mangaApi, favoritesApi, progressApi } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { analytics } from "@/lib/analytics";
 import type { Chapter } from "@/lib/types";
 
 export default function MangaDetail() {
@@ -38,12 +40,19 @@ export default function MangaDetail() {
 
   const { data: relatedManga } = useQuery({
     queryKey: ["/api/manga", "related", manga?.genres?.[0]],
-    queryFn: () => mangaApi.searchManga({ 
+    queryFn: () => mangaApi.getMangaList({ 
       tags: manga?.genres?.slice(0, 1), 
       limit: 8 
     }),
     enabled: !!manga?.genres?.length,
   });
+
+  // Track manga view when component mounts and manga data is available
+  useEffect(() => {
+    if (manga && id) {
+      analytics.trackMangaView(id, manga.title, 'detail');
+    }
+  }, [manga, id]);
 
   const { data: readingProgress } = useQuery({
     queryKey: ["/api/reading-progress"],
@@ -160,34 +169,6 @@ export default function MangaDetail() {
               )}
               
               <div className="space-y-3 mb-4">
-                {/* Navigation Buttons */}
-                <div className="flex gap-2">
-                  <Button 
-                    asChild 
-                    className="flex-1" 
-                    disabled={!firstChapter}
-                    data-testid="start-first-chapter-button"
-                  >
-                    <Link href={firstChapter ? `/reader/${firstChapter.id}` : "#"}>
-                      <Play className="h-4 w-4 mr-2" />
-                      Start from Chapter 1
-                    </Link>
-                  </Button>
-                  
-                  <Button 
-                    asChild 
-                    variant="secondary"
-                    className="flex-1" 
-                    disabled={!latestChapter}
-                    data-testid="read-latest-chapter-button"
-                  >
-                    <Link href={latestChapter ? `/reader/${latestChapter.id}` : "#"}>
-                      <SkipForward className="h-4 w-4 mr-2" />
-                      Read Latest Chapter
-                    </Link>
-                  </Button>
-                </div>
-                
                 {/* Favorite Button */}
                 {isAuthenticated && (
                   <Button
@@ -286,6 +267,34 @@ export default function MangaDetail() {
                     {chaptersList.length} chapters
                   </span>
                 </div>
+              </div>
+
+              {/* Navigation Buttons */}
+              <div className="flex flex-col gap-2 mb-6">
+                <Button 
+                  asChild 
+                  className="w-full" 
+                  disabled={!firstChapter}
+                  data-testid="start-first-chapter-button"
+                >
+                  <Link href={firstChapter ? `/reader/${firstChapter.id}` : "#"}>
+                    <Play className="h-4 w-4 mr-2" />
+                    Start Reading
+                  </Link>
+                </Button>
+                
+                <Button 
+                  asChild 
+                  variant="secondary"
+                  className="w-full" 
+                  disabled={!latestChapter}
+                  data-testid="read-latest-chapter-button"
+                >
+                  <Link href={latestChapter ? `/reader/${latestChapter.id}` : "#"}>
+                    <SkipForward className="h-4 w-4 mr-2" />
+                    Latest Chapter
+                  </Link>
+                </Button>
               </div>
 
               {chaptersLoading ? (

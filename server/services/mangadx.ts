@@ -91,18 +91,29 @@ class MangaDxService {
     limit?: number;
     offset?: number;
     order?: string;
+    orderField?: string;
     includes?: string[];
     hasAvailableChapters?: boolean;
     contentRating?: string[];
     status?: string[];
     tags?: string[];
     excludedTags?: string[];
+    publicationDemographic?: string[];
+    originalLanguage?: string[];
+    translatedLanguage?: string[];
+    year?: number;
+    createdAtSince?: string;
+    updatedAtSince?: string;
   } = {}): Promise<MangaDxResponse<MangaDxManga[]>> {
     const searchParams = new URLSearchParams();
     
     if (params.limit) searchParams.set('limit', params.limit.toString());
     if (params.offset) searchParams.set('offset', params.offset.toString());
-    if (params.order) searchParams.set('order[updatedAt]', params.order);
+    if (params.order && params.orderField) {
+      searchParams.set(`order[${params.orderField}]`, params.order);
+    } else if (params.order) {
+      searchParams.set('order[updatedAt]', params.order);
+    }
     if (params.includes) {
       params.includes.forEach(include => searchParams.append('includes[]', include));
     }
@@ -120,6 +131,24 @@ class MangaDxService {
     }
     if (params.excludedTags) {
       params.excludedTags.forEach(tag => searchParams.append('excludedTags[]', tag));
+    }
+    if (params.publicationDemographic) {
+      params.publicationDemographic.forEach(demo => searchParams.append('publicationDemographic[]', demo));
+    }
+    if (params.originalLanguage) {
+      params.originalLanguage.forEach(lang => searchParams.append('originalLanguage[]', lang));
+    }
+    if (params.translatedLanguage) {
+      params.translatedLanguage.forEach(lang => searchParams.append('availableTranslatedLanguage[]', lang));
+    }
+    if (params.year) {
+      searchParams.set('year', params.year.toString());
+    }
+    if (params.createdAtSince) {
+      searchParams.set('createdAtSince', params.createdAtSince);
+    }
+    if (params.updatedAtSince) {
+      searchParams.set('updatedAtSince', params.updatedAtSince);
     }
 
     const response = await fetch(`${this.baseUrl}/manga?${searchParams}`);

@@ -5,6 +5,7 @@ import { MangaCard } from "./manga-card";
 import { mangaApi } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import type { Manga } from "@/lib/types";
 
 interface MangaCarouselProps {
   title: string;
@@ -23,7 +24,8 @@ export function MangaCarousel({ title, searchParams = {}, showFavoriteButtons = 
 
   if (error) {
     return (
-      <div className="text-center py-8" data-testid="carousel-error">
+      <div className="space-y-4" data-testid="carousel-error">
+        <h3 className="text-2xl font-bold text-foreground">{title}</h3>
         <p className="text-muted-foreground">Failed to load manga. Please try again later.</p>
       </div>
     );
@@ -33,7 +35,7 @@ export function MangaCarousel({ title, searchParams = {}, showFavoriteButtons = 
     return (
       <div className="space-y-4" data-testid="carousel-loading">
         <h3 className="text-2xl font-bold text-foreground">{title}</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
             <div 
               key={i} 
@@ -68,12 +70,8 @@ export function MangaCarousel({ title, searchParams = {}, showFavoriteButtons = 
       </div>
 
       <div className="relative">
-        <div className={`grid gap-4 ${
-          isMobile 
-            ? "grid-cols-2" 
-            : "grid-cols-2 md:grid-cols-4 lg:grid-cols-6"
-        }`} data-testid="carousel-grid">
-          {mangaList.map((manga) => (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" data-testid="carousel-grid">
+          {mangaList.map((manga: Manga) => (
             <MangaCard
               key={manga.id}
               manga={manga}

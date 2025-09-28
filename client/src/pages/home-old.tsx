@@ -15,11 +15,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { MangaSearchParams } from "@/lib/types";
 
-export default function Browse() {
+export default function Home() {
   const [location] = useLocation();
   const { isAuthenticated } = useAuth();
   const isMobile = useIsMobile();
-  
+
   const [searchParams, setSearchParams] = useState<MangaSearchParams>({
     limit: 20,
     offset: 0,
@@ -46,15 +46,15 @@ export default function Browse() {
   }, [location]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["/api/manga", "browse", searchParams],
-    queryFn: () => mangaApi.searchManga(searchParams),
+    queryKey: ["/api/manga", "home", searchParams],
+    queryFn: () => mangaApi.getMangaList(searchParams),
   });
 
   const handleSearch = (query: string) => {
     setSearchParams(prev => ({ ...prev, search: query, offset: 0 }));
   };
 
-  const handleFilterChange = (key: keyof MangaSearchParams, value: any) => {
+  const handleFilterChange = (key: keyof MangaSearchParams, value: string | string[] | number | undefined) => {
     setSearchParams(prev => ({ ...prev, [key]: value, offset: 0 }));
   };
 
@@ -68,7 +68,7 @@ export default function Browse() {
   const totalPages = Math.ceil(total / (searchParams.limit || 20));
 
   return (
-    <div className="container mx-auto px-4 py-8" data-testid="browse-page">
+    <div className="container mx-auto px-4 py-8" data-testid="home-page">
       <div className="flex flex-col lg:flex-row gap-8">
         {/* Filters Sidebar */}
         <div className={`lg:w-64 flex-shrink-0 ${isMobile && !showFilters ? "hidden" : ""}`}>
@@ -87,7 +87,7 @@ export default function Browse() {
                   </Button>
                 )}
               </div>
-              
+
               {/* Search */}
               <div className="mb-6">
                 <Label htmlFor="search" className="text-sm font-medium mb-2 block">Search</Label>
@@ -173,7 +173,7 @@ export default function Browse() {
               />
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             </div>
-            
+
             <div className="flex gap-2">
               {isMobile && (
                 <Button
@@ -185,7 +185,7 @@ export default function Browse() {
                   Filters
                 </Button>
               )}
-              
+
               <Select 
                 value={searchParams.order || "desc"}
                 onValueChange={(value) => handleFilterChange("order", value)}
@@ -224,22 +224,22 @@ export default function Browse() {
           </div>
 
           {/* Ad Slot */}
-          <AdSlot position="browse_top" />
+          <AdSlot position="homepage_top" />
 
           {/* Results */}
           {error && (
-            <div className="text-center py-8" data-testid="browse-error">
+            <div className="text-center py-8" data-testid="home-error">
               <p className="text-muted-foreground">Failed to load manga. Please try again later.</p>
             </div>
           )}
 
           {isLoading && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8" data-testid="browse-loading">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8" data-testid="home-loading">
               {Array.from({ length: 12 }).map((_, i) => (
                 <div 
                   key={i} 
                   className="bg-muted rounded-lg h-64 animate-pulse"
-                  data-testid={`browse-skeleton-${i}`}
+                  data-testid={`home-skeleton-${i}`}
                 />
               ))}
             </div>
@@ -295,11 +295,11 @@ export default function Browse() {
                   >
                     Previous
                   </Button>
-                  
+
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                     const page = Math.max(1, currentPage - 2) + i;
                     if (page > totalPages) return null;
-                    
+
                     return (
                       <Button
                         key={page}
@@ -311,7 +311,7 @@ export default function Browse() {
                       </Button>
                     );
                   })}
-                  
+
                   <Button
                     variant="outline"
                     disabled={currentPage === totalPages}

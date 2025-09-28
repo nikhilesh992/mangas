@@ -719,5 +719,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  // Test endpoint for MangaPlus
+  app.get("/api/test-mangaplus", async (req, res) => {
+    try {
+      const mockMangaPlus = [
+        {
+          id: 'mp-1001',
+          title: 'One Piece (MangaPlus)',
+          description: 'Official colored manga from MangaPlus',
+          coverUrl: 'https://via.placeholder.com/300x400/FF6B6B/FFFFFF?text=One+Piece',
+          status: 'ongoing',
+          year: 1997,
+          contentRating: 'safe',
+          genres: ['Action', 'Adventure', 'Shonen'],
+          authors: [{ id: '1', name: 'Eiichiro Oda', type: 'author' }],
+          updatedAt: new Date().toISOString(),
+          latestChapter: '1100',
+          availableLanguages: ['en'],
+        },
+        {
+          id: 'mp-1002',
+          title: 'Naruto (MangaPlus)',
+          description: 'Official colored manga from MangaPlus',
+          coverUrl: 'https://via.placeholder.com/300x400/4ECDC4/FFFFFF?text=Naruto',
+          status: 'completed',
+          year: 1999,
+          contentRating: 'safe',
+          genres: ['Action', 'Adventure', 'Shonen'],
+          authors: [{ id: '2', name: 'Masashi Kishimoto', type: 'author' }],
+          updatedAt: new Date().toISOString(),
+          latestChapter: '700',
+          availableLanguages: ['en'],
+        },
+      ];
+
+      res.json({
+        data: mockMangaPlus,
+        total: mockMangaPlus.length,
+        limit: 20,
+        offset: 0,
+        sources: ['mangaplus'],
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: 'Test endpoint error', error: error.message });
+    }
+  });
+
   return httpServer;
 }
