@@ -1,0 +1,433 @@
+Project spec — Manga React Site (MangaDex API) + Admin Panel
+1. Project overview
+
+Build a responsive manga website (desktop, tablet, mobile) using the MangaDex API for content. Two main parts:
+
+Frontend (React) — public site: home, browse, search, manga detail, reader, user actions (favorites, reading progress), blog section.
+
+Admin interface (protected) — change API connections/URLs, manage blog posts, manage ad networks & custom banners, manage promotional banners, moderate content/users, view simple analytics.
+
+Tech choices (recommended):
+
+Frontend: Next.js (React) for SEO and server-side rendering OR Vite + React if you prefer pure client SPA.
+
+Backend (admin + proxy): Node.js + Express (API server) — acts as admin backend, image upload endpoint, and optional proxy for MangaDex requests if you want to control rate-limits or hide keys.
+
+Database: MongoDB Atlas (or PostgreSQL) for admin data, blogs, ads, banners, users.
+
+File storage: AWS S3 (or Cloudinary) for blog images and custom banners.
+
+Auth: JWT for admin sessions + optional OAuth for users (Google, Email OTP).
+
+Deployment: Replit for development + Vercel/Netlify for frontend or host both on Replit + Railway/Render for backend, or deploy Next.js fullstack on Vercel.
+
+2. High-level features
+A. Public site (user-facing)
+
+Homepage
+
+Latest updated manga (from MangaDex): carousel + grid.
+
+Featured banners (admin-managed) + ad slots.
+
+Blog highlights.
+
+Browse / Categories / Genres
+
+Filter by genre, status, year, language.
+
+Sorting: updatedAt, follows, popularity.
+
+Search
+
+Live search by title, author, tag.
+
+Fuzzy matching and paginated results.
+
+Manga detail page
+
+Title, cover, author, artist, tags, description, status.
+
+Chapters list (with release date, language).
+
+Follow/Bookmark button.
+
+Related manga suggestions.
+
+Ad slots (top, inline, sidebar).
+
+Reader
+
+Multi-page viewer (single page vertical scroll or paged mode).
+
+Keyboard controls, swipe (mobile), zoom, fit-to-screen.
+
+Save reading progress per user (or localStorage for guest).
+
+User features (optional)
+
+Register/login (email or Google).
+
+Favorite/follow list, reading history, saved chapters.
+
+Comment integration: either built-in (simple) or external (Disqus).
+
+Blog section
+
+Blog list with pagination, categories, search.
+
+Blog post pages with images (responsive), tags, author, date, share buttons.
+
+Ads
+
+Support multiple ad networks by adding ad script snippet in admin.
+
+Custom banner ads: admin can upload images, target URL, start/end date.
+
+Ad rotation and priority management.
+
+Accessibility & SEO
+
+Meta tags, Open Graph, semantic HTML, accessible alt text.
+
+B. Admin Panel (protected)
+
+Login (admin accounts, role-based).
+
+API Connections
+
+UI to configure API sources (MangaDex base URL and any other API). Fields:
+
+name, baseURL, enabled, priority, endpoints (map).
+
+Save and test connection (display sample response).
+
+Endpoints & Route Mapping
+
+For each API, admin can map logical operations to endpoint paths (e.g. getMangaList -> /manga?order[updatedAt]=desc&page={page}&limit={limit}).
+
+Provide placeholders and sample query params.
+
+Ads Management
+
+Add/Remove ad networks by pasting ad script snippet or iframe code.
+
+Manage custom banners: upload image, link URL, positions (homepage top, sidebar, reader inline), schedule, impressions/clicks counters.
+
+Toggle ad slots on/off.
+
+Promotional Banners
+
+Allow clients to buy/promote banner slots; admin can upload banner & set active dates.
+
+Blog CRUD
+
+Create/edit/delete posts with rich text editor (images, headings, lists).
+
+Image upload to S3 or Cloudinary.
+
+Categories & tags, permalink slug editor.
+
+Manga/Chapter Cache
+
+Optionally store cached manga metadata (if using proxy) and refresh intervals.
+
+User Management
+
+List users, ban/unban, change roles.
+
+Settings
+
+Global site settings (site title, meta desc, logo).
+
+Analytics keys (Google Analytics), ReCaptcha, etc.
+
+Logs & Simple Stats
+
+Ad impressions, top manga viewed, monthly active users (basic).
+
+3. MangaDex integration (examples)
+
+MangaDex base: https://api.mangadex.org
+
+Important MangaDex sample endpoints (use these in your frontend or via backend proxy):
+
+Get manga list (latest updated):
+
+GET https://api.mangadex.org/manga?order[updatedAt]=desc&limit=20&offset=0
+
+
+Manga detail (include cover, author, artist):
+
+GET https://api.mangadex.org/manga/{mangaId}?includes[]=cover_art&includes[]=author&includes[]=artist
+
+
+Get chapters for a manga:
+
+GET https://api.mangadex.org/chapter?manga[]={mangaId}&translatedLanguage[]=en&order[volume]=desc&order[chapter]=desc
+
+
+Get chapter images (attribution / convert to viewer):
+
+GET /at-home/server/{chapterId} -> returns baseUrl + hash info for images.
+
+Use the returned baseUrl to build page image URLs.
+
+(Implement error handling, rate-limit retries, and caching where needed.)
+
+4. Admin API-config JSON (example)
+
+Admin UI will produce & save a JSON config like this to DB:
+
+{
+  "apis": [
+    {
+      "id": "mangadex",
+      "name": "MangaDex",
+      "baseURL": "https://api.mangadex.org",
+      "enabled": true,
+      "priority": 1,
+      "endpoints": {
+        "listManga": "/manga?order[updatedAt]=desc&limit={limit}&offset={offset}",
+        "mangaDetail": "/manga/{mangaId}?includes[]=cover_art&includes[]=author&includes[]=artist",
+        "chapterList": "/chapter?manga[]={mangaId}&translatedLanguage[]={lang}&order[chapter]=desc",
+        "chapterAtHome": "/at-home/server/{chapterId}"
+      }
+    },
+    {
+      "id": "backupApi",
+      "name": "Backup API Source (optional)",
+      "baseURL": "https://example-backup-api.com",
+      "enabled": false,
+      "priority": 2,
+      "endpoints": {
+        "listManga": "/v1/manga/latest?page={page}",
+        "mangaDetail": "/v1/manga/{mangaId}"
+      }
+    }
+  ],
+  "ads": {
+    "networks": [
+      {
+        "id": "adsense",
+        "name": "Google AdSense",
+        "script": "<script>/* Paste ad code here */</script>",
+        "enabled": true,
+        "slots": ["homepage_top","manga_detail_top","reader_bottom"]
+      }
+    ],
+    "banners": [
+      {
+        "id": "promo_001",
+        "imageUrl": "https://cdn.example.com/banners/promo1.jpg",
+        "link": "https://advertiser.com",
+        "positions": ["homepage_top"],
+        "startDate": "2025-09-01T00:00:00Z",
+        "endDate": "2025-12-01T00:00:00Z",
+        "impressions": 0,
+        "clicks": 0
+      }
+    ]
+  }
+}
+
+
+Admin must be able to edit this JSON through a friendly UI.
+
+5. Ad integration approach & notes
+
+Admin will paste ad network script snippets (e.g., AdSense code). The frontend will render them into designated ad slots using dangerouslySetInnerHTML or inserting <script> element dynamically.
+
+For custom banners, store images in S3 and show via img tags; on click redirect and increment click counter in DB.
+
+AdMob is for apps — not supported on web. Instead use web ad networks or direct banners.
+
+Ad slots: homepage_top, homepage_sidebar, manga_detail_top, manga_detail_inline, reader_top, reader_bottom.
+
+Provide a preview in admin for each ad slot.
+
+Track impressions server-side (increment when component mounts) or client via analytics.
+
+6. Blog requirements
+
+Rich text editor (e.g., TinyMCE, Quill).
+
+Image uploads with automatic resizing and WebP conversion.
+
+SEO fields: title, meta description, canonical URL.
+
+Slug-based URLs: /blog/{slug}.
+
+Admin can schedule posts and attach categories & tags.
+
+Comments: integrate with Disqus or custom lightweight comment system (requires moderation tools).
+
+7. Security & policies
+
+Admin endpoints protected (JWT + role checks).
+
+Rate limit admin endpoints.
+
+Validate & sanitize uploaded images and text (prevent XSS).
+
+For any ad scripts, sanitize input and warn admin that third-party scripts run untrusted code.
+
+Privacy policy page if using ads and user tracking.
+
+8. Responsive & UI/UX details
+
+Use a mobile-first responsive layout.
+
+Reader must support:
+
+Vertical continuous scroll (mobile friendly).
+
+Page-by-page mode for desktop with left/right navigation.
+
+Image prefetch for next pages.
+
+Use lazy loading for images.
+
+Provide dark mode toggle.
+
+Provide fonts that scale well; avoid very large assets.
+
+9. Folder structure (suggested)
+/client (React or Next.js)
+  /components
+  /pages (or /routes)
+  /styles
+  /lib (api helpers)
+  /hooks
+  /public (static)
+  /services (ads, analytics)
+  /utils
+
+/server (Node/Express)
+  /routes
+  /controllers
+  /models (Mongo schemas)
+  /services (mangadexProxy, s3Upload)
+  /middlewares (auth, rateLimit)
+  /config
+
+10. Environment variables (sample .env)
+# Server
+PORT=4000
+MONGODB_URI=mongodb+srv://<user>:<pass>@cluster0.mongodb.net/mangadb
+JWT_SECRET=your_jwt_secret_here
+S3_BUCKET_NAME=your-bucket
+S3_ACCESS_KEY_ID=...
+S3_SECRET_ACCESS_KEY=...
+S3_REGION=ap-south-1
+
+# Optional proxy or extra API
+MANG ADEX_BASE_URL=https://api.mangadex.org
+
+# Client (public)
+NEXT_PUBLIC_SITE_TITLE="My Manga Site"
+NEXT_PUBLIC_ANALYTICS_ID=UA-XXXXX-Y
+
+11. Example API call (frontend -> backend -> MangaDex)
+
+Frontend calls server: GET /api/manga/latest?page=1
+
+Server controller:
+
+Build URL using admin-configured endpoint: ${baseURL}${endpoints.listManga} replacing {limit} and {offset}.
+
+Fetch from MangaDex.
+
+Cache result for N seconds.
+
+Return JSON to frontend.
+
+12. Reader UX & implementation notes
+
+Use chapterId -> call /at-home/server/{chapterId} then build image URLs.
+
+Provide quality selection if sources supply multiple image sizes.
+
+Add prefetchNextChapter() for smoother reading.
+
+Provide "open in new tab" link to raw images for debugging.
+
+13. Testing, logging, monitoring
+
+Unit tests for key services.
+
+E2E test for reader flow.
+
+Logging (Winston) for server errors.
+
+Monitor errors with Sentry (optional).
+
+14. SEO & performance
+
+Pre-render popular pages (Next.js SSG) for improved SEO.
+
+Use rel=preload for fonts and prefetch for next chapter images.
+
+Optimize images, use CDN (Cloudflare/Akamai) for static content.
+
+15. Deliverables for Replit developer
+
+Ask the developer to provide each of these in a repo:
+
+Working frontend (Next.js or Vite) with all UI pages (home, browse, detail, reader, blog pages).
+
+Working backend (Node/Express) with admin endpoints, blog CRUD, ad CRUD, config persistence.
+
+Admin UI pages to edit API config + ad scripts + banners + blog posts.
+
+DB schema and migration / seed sample data.
+
+Documentation file README.md with setup steps, env variables, and deploy instructions.
+
+Minimal styling (Tailwind CSS recommended) and responsive breakpoints.
+
+Demo credentials for admin and a walkthrough video (optional).
+
+16. Priorities & MVP (what to build first)
+
+MVP (deliver in 1st milestone):
+
+Homepage (latest manga), manga detail, reader (basic), search, blog list & view.
+
+Admin panel: change MangaDex baseURL and endpoints, add custom banners, and create blog posts.
+
+Ad slots that accept raw script/iframe and custom banners.
+
+Deployable to Replit or Vercel with documented setup.
+
+Post-MVP:
+
+User accounts, comments, analytics dashboard, ad rotation algorithms, multi-API failover.
+
+17. Acceptance criteria (how to confirm work is done)
+
+Public site loads and shows manga from MangaDex.
+
+Reader loads chapter images and supports next/previous navigation.
+
+Admin UI can change API connection config and it affects the frontend immediately (or after cache clear).
+
+Admin can add ad script snippet and it appears in the chosen slot.
+
+Admin can create blog posts with images that render correctly.
+
+Responsive behavior verified on mobile, tablet and desktop.
+
+18. Extra tips for developer
+
+Use a small wrapper service for API mapping so admin can change endpoints without code changes.
+
+Keep ad insertion isolated in components to reduce security risk.
+
+Provide export/import for admin config (JSON) for backups.
+
+Document how to add new ad network templates.
+
+19. Quick copy for your Replit request (one-paragraph to paste)
+
+Build a responsive manga website using the MangaDex API with a fully-featured admin panel. The admin must be able to edit API base URLs and endpoints, manage ad networks by pasting ad script snippets, create custom banners, and manage blog posts (images, SEO). The site must include homepage, browse/filters, search, manga detail, and a reader (single-scroll + paged), plus blog section. Tech stack: Next.js (recommended) or Vite + React for frontend, Node/Express backend, MongoDB Atlas for admin data, S3/Cloudinary for images. Deliver frontend, backend, DB schema, README with env variables, and admin/test credentials. Follow the config JSON format described in the attached spec.
