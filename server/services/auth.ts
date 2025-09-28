@@ -6,6 +6,9 @@ const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable must be set');
 }
+
+// Type assertion to help TypeScript understand JWT_SECRET is definitely defined
+const jwtSecret: string = JWT_SECRET;
 const JWT_EXPIRES_IN = '7d';
 const SALT_ROUNDS = 12;
 
@@ -33,12 +36,12 @@ export class AuthService {
       role: user.role,
     };
 
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+    return jwt.sign(payload, jwtSecret, { expiresIn: JWT_EXPIRES_IN });
   }
 
   static verifyToken(token: string): JWTPayload {
     try {
-      return jwt.verify(token, JWT_SECRET) as JWTPayload;
+      return jwt.verify(token, jwtSecret) as JWTPayload;
     } catch (error) {
       throw new Error('Invalid or expired token');
     }
@@ -56,12 +59,12 @@ export class AuthService {
   }
 
   static generatePasswordResetToken(userId: string): string {
-    return jwt.sign({ userId, type: 'password-reset' }, JWT_SECRET, { expiresIn: '1h' });
+    return jwt.sign({ userId, type: 'password-reset' }, jwtSecret, { expiresIn: '1h' });
   }
 
   static verifyPasswordResetToken(token: string): { userId: string } {
     try {
-      const payload = jwt.verify(token, JWT_SECRET) as any;
+      const payload = jwt.verify(token, jwtSecret) as any;
       if (payload.type !== 'password-reset') {
         throw new Error('Invalid token type');
       }
