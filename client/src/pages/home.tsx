@@ -24,7 +24,8 @@ export default function Home() {
   const [searchParams, setSearchParams] = useState<MangaSearchParams>({
     limit: 20,
     offset: 0,
-    order: "desc",
+    order: "latestUploadedChapter",
+    contentRating: ["safe", "suggestive"],
   });
   
   // Fetch available tags from API
@@ -61,7 +62,8 @@ export default function Home() {
     const params: MangaSearchParams = {
       limit: 20,
       offset: 0,
-      order: "desc",
+      order: "latestUploadedChapter",
+      contentRating: ["safe", "suggestive"],
     };
 
     if (urlParams.get("search")) params.search = urlParams.get("search")!;
@@ -217,7 +219,7 @@ export default function Home() {
 
               <Button 
                 className="w-full" 
-                onClick={() => setSearchParams({ limit: 20, offset: 0, order: "desc" })}
+                onClick={() => setSearchParams({ limit: 20, offset: 0, order: "latestUploadedChapter", contentRating: ["safe", "suggestive"] })}
                 data-testid="clear-filters"
               >
                 Clear Filters
@@ -316,7 +318,7 @@ export default function Home() {
                   <p className="text-muted-foreground text-lg">No manga found matching your criteria.</p>
                   <Button 
                     className="mt-4"
-                    onClick={() => setSearchParams({ limit: 20, offset: 0, order: "desc" })}
+                    onClick={() => setSearchParams({ limit: 20, offset: 0, order: "latestUploadedChapter", contentRating: ["safe", "suggestive"] })}
                     data-testid="clear-search"
                   >
                     Clear Search
