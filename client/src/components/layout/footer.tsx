@@ -2,7 +2,7 @@ import { FaFacebook, FaTwitter, FaInstagram, FaWhatsapp } from "react-icons/fa";
 
 export function Footer() {
   return (
-    <footer className="bg-[#111] text-white py-6 shadow-[0_-2px_10px_rgba(0,0,0,0.3)]" data-testid="main-footer">
+    <footer className="bg-[#111] text-white py-6 shadow-[0_-2px_10px_rgba(0,0,0,0.3)] border-t border-gray-800" data-testid="main-footer">
       <div className="container mx-auto px-4 text-center">
         {/* Copyright */}
         <p className="text-sm mb-4" data-testid="footer-copyright">
@@ -13,7 +13,7 @@ export function Footer() {
         <div className="flex justify-center items-center space-x-6" data-testid="footer-social">
           <a 
             href="#" 
-            className="text-white hover:text-blue-600 transition-colors duration-200" 
+            className="text-white hover:text-blue-500 transition-colors duration-200" 
             aria-label="Facebook"
             data-testid="social-facebook"
           >
