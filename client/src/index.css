@@ -4,43 +4,43 @@
 @tailwind utilities;
 
 :root {
-  /* Surface layers - Neo-noir depth system */
-  --background: hsl(222, 28%, 8%);
-  --foreground: hsl(220, 20%, 92%);
-  --card: hsl(222, 24%, 12%);
-  --card-foreground: hsl(220, 20%, 92%);
-  --popover: hsl(222, 24%, 12%);
-  --popover-foreground: hsl(220, 20%, 92%);
+  /* Surface layers - Enhanced premium dark system */
+  --background: hsl(220, 30%, 6%);
+  --foreground: hsl(220, 15%, 95%);
+  --card: hsl(220, 25%, 10%);
+  --card-foreground: hsl(220, 15%, 95%);
+  --popover: hsl(220, 25%, 10%);
+  --popover-foreground: hsl(220, 15%, 95%);
   
-  /* Action colors - Distinct button states */
-  --primary: hsl(266, 84%, 62%);
+  /* Premium action colors with better contrast */
+  --primary: hsl(250, 85%, 65%);
   --primary-foreground: hsl(0, 0%, 98%);
-  --primary-hover: hsl(266, 84%, 68%);
-  --primary-pressed: hsl(266, 84%, 56%);
+  --primary-hover: hsl(250, 85%, 72%);
+  --primary-pressed: hsl(250, 85%, 58%);
   
-  --secondary: hsl(210, 18%, 30%);
-  --secondary-foreground: hsl(220, 20%, 92%);
-  --secondary-hover: hsl(210, 18%, 36%);
+  --secondary: hsl(215, 20%, 25%);
+  --secondary-foreground: hsl(220, 15%, 95%);
+  --secondary-hover: hsl(215, 20%, 32%);
   
-  /* Surface tiers */
-  --muted: hsl(220, 16%, 18%);
-  --muted-foreground: hsl(220, 12%, 70%);
+  /* Enhanced surface tiers */
+  --muted: hsl(220, 18%, 16%);
+  --muted-foreground: hsl(220, 12%, 75%);
   
-  /* Accent cyan for highlights */
-  --accent: hsl(187, 78%, 54%);
-  --accent-foreground: hsl(222, 28%, 8%);
+  /* Premium accent colors */
+  --accent: hsl(195, 85%, 60%);
+  --accent-foreground: hsl(220, 30%, 6%);
   
-  /* Semantic colors */
-  --destructive: hsl(1, 80%, 58%);
+  /* Enhanced semantic colors */
+  --destructive: hsl(0, 85%, 62%);
   --destructive-foreground: hsl(0, 0%, 98%);
-  --success: hsl(148, 64%, 46%);
-  --warning: hsl(36, 90%, 56%);
+  --success: hsl(145, 70%, 50%);
+  --warning: hsl(35, 90%, 58%);
   
-  /* Enhanced borders */
-  --border: hsl(220, 15%, 22%);
-  --border-subtle: hsl(220, 14%, 18%);
-  --input: hsl(220, 16%, 18%);
-  --ring: hsl(187, 78%, 60%);
+  /* Premium borders with better definition */
+  --border: hsl(220, 20%, 20%);
+  --border-subtle: hsl(220, 18%, 16%);
+  --input: hsl(220, 18%, 16%);
+  --ring: hsl(195, 85%, 65%);
   --chart-1: hsl(265, 91%, 63%);
   --chart-2: hsl(159, 78%, 36%);
   --chart-3: hsl(42, 93%, 56%);
@@ -71,43 +71,43 @@
 }
 
 .dark {
-  /* Surface layers - Neo-noir depth system */
-  --background: hsl(222, 28%, 8%);
-  --foreground: hsl(220, 20%, 92%);
-  --card: hsl(222, 24%, 12%);
-  --card-foreground: hsl(220, 20%, 92%);
-  --popover: hsl(222, 24%, 12%);
-  --popover-foreground: hsl(220, 20%, 92%);
+  /* Surface layers - Enhanced premium dark system */
+  --background: hsl(220, 30%, 6%);
+  --foreground: hsl(220, 15%, 95%);
+  --card: hsl(220, 25%, 10%);
+  --card-foreground: hsl(220, 15%, 95%);
+  --popover: hsl(220, 25%, 10%);
+  --popover-foreground: hsl(220, 15%, 95%);
   
-  /* Action colors - Distinct button states */
-  --primary: hsl(266, 84%, 62%);
+  /* Premium action colors with better contrast */
+  --primary: hsl(250, 85%, 65%);
   --primary-foreground: hsl(0, 0%, 98%);
-  --primary-hover: hsl(266, 84%, 68%);
-  --primary-pressed: hsl(266, 84%, 56%);
+  --primary-hover: hsl(250, 85%, 72%);
+  --primary-pressed: hsl(250, 85%, 58%);
   
-  --secondary: hsl(210, 18%, 30%);
-  --secondary-foreground: hsl(220, 20%, 92%);
-  --secondary-hover: hsl(210, 18%, 36%);
+  --secondary: hsl(215, 20%, 25%);
+  --secondary-foreground: hsl(220, 15%, 95%);
+  --secondary-hover: hsl(215, 20%, 32%);
   
-  /* Surface tiers */
-  --muted: hsl(220, 16%, 18%);
-  --muted-foreground: hsl(220, 12%, 70%);
+  /* Enhanced surface tiers */
+  --muted: hsl(220, 18%, 16%);
+  --muted-foreground: hsl(220, 12%, 75%);
   
-  /* Accent cyan for highlights */
-  --accent: hsl(187, 78%, 54%);
-  --accent-foreground: hsl(222, 28%, 8%);
+  /* Premium accent colors */
+  --accent: hsl(195, 85%, 60%);
+  --accent-foreground: hsl(220, 30%, 6%);
   
-  /* Semantic colors */
-  --destructive: hsl(1, 80%, 58%);
+  /* Enhanced semantic colors */
+  --destructive: hsl(0, 85%, 62%);
   --destructive-foreground: hsl(0, 0%, 98%);
-  --success: hsl(148, 64%, 46%);
-  --warning: hsl(36, 90%, 56%);
+  --success: hsl(145, 70%, 50%);
+  --warning: hsl(35, 90%, 58%);
   
-  /* Enhanced borders */
-  --border: hsl(220, 15%, 22%);
-  --border-subtle: hsl(220, 14%, 18%);
-  --input: hsl(220, 16%, 18%);
-  --ring: hsl(187, 78%, 60%);
+  /* Premium borders with better definition */
+  --border: hsl(220, 20%, 20%);
+  --border-subtle: hsl(220, 18%, 16%);
+  --input: hsl(220, 18%, 16%);
+  --ring: hsl(195, 85%, 65%);
   --chart-1: hsl(265, 91%, 63%);
   --chart-2: hsl(159, 78%, 36%);
   --chart-3: hsl(42, 93%, 56%);
@@ -144,10 +144,10 @@
     color: hsl(var(--foreground)) !important;
   }
   
-  /* Force enhanced dark theme */
+  /* Force enhanced premium dark theme */
   html, body, #root {
-    background-color: hsl(222, 28%, 8%) !important;
-    color: hsl(220, 20%, 92%) !important;
+    background-color: hsl(220, 30%, 6%) !important;
+    color: hsl(220, 15%, 95%) !important;
   }
   
   /* Text hierarchy */
@@ -166,18 +166,18 @@
 
 @layer components {
   .gradient-hero {
-    background: linear-gradient(135deg, hsl(266, 84%, 62%), hsl(187, 78%, 54%));
+    background: linear-gradient(135deg, hsl(250, 85%, 65%), hsl(195, 85%, 60%));
   }
   
   /* Enhanced button styles with proper hover states */
   .btn-primary:hover {
-    background-color: hsl(266, 84%, 68%);
+    background-color: hsl(250, 85%, 72%);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(101, 80, 255, 0.3);
+    box-shadow: 0 4px 12px hsla(250, 85%, 65%, 0.4);
   }
   
   .btn-primary:active {
-    background-color: hsl(266, 84%, 56%);
+    background-color: hsl(250, 85%, 58%);
     transform: translateY(0);
   }
   
