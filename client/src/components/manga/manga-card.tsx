@@ -3,6 +3,7 @@ import { Heart, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Manga } from "@/lib/types";
+import placeholderImage from "@assets/stock_images/manga_book_placehold_a21b69fb.jpg";
 
 interface MangaCardProps {
   manga: Manga;
@@ -23,15 +24,20 @@ export function MangaCard({
     onFavoriteClick?.(manga);
   };
 
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    e.currentTarget.src = placeholderImage;
+  };
+
   return (
     <Link href={`/manga/${manga.id}`} data-testid={`manga-card-${manga.id}`}>
       <div className="manga-card bg-card rounded-lg overflow-hidden border border-border hover:border-primary/50 transition-all cursor-pointer group">
         <div className="relative">
           <img
-            src={manga.coverUrl || "/placeholder-cover.jpg"}
+            src={manga.coverUrl || placeholderImage}
             alt={`${manga.title} cover`}
             className="w-full h-48 sm:h-64 object-cover"
             loading="lazy"
+            onError={handleImageError}
             data-testid={`manga-cover-${manga.id}`}
           />
           

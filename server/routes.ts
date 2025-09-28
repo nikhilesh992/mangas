@@ -275,8 +275,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return `/api/image-proxy?url=${encodeURIComponent(originalImageUrl)}`;
       });
 
+      // Extract manga ID from chapter relationships
+      const mangaRelationship = chapter.relationships.find(rel => rel.type === 'manga');
+      const mangaId = mangaRelationship?.id;
+
       res.json({
         id: chapter.id,
+        mangaId: mangaId,
         volume: chapter.attributes.volume,
         chapter: chapter.attributes.chapter,
         title: chapter.attributes.title,
@@ -677,7 +682,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const imageResponse = await fetch(decodedUrl);
       
       if (!imageResponse.ok) {
-        return res.status(404).json({ message: "Image not found" });
+        // Instead of returning JSON error, redirect to a default placeholder
+        // This prevents broken image displays in the frontend
+        const placeholderUrl = 'https://via.placeholder.com/400x600/333333/ffffff?text=No+Cover';
+        const placeholderResponse = await fetch(placeholderUrl);
+        
+        if (placeholderResponse.ok) {
+          const contentType = placeholderResponse.headers.get('content-type') || 'image/png';
+          res.setHeader('Content-Type', contentType);
+          res.setHeader('Cache-Control', 'public, max-age=3600'); // Cache placeholder for 1 hour
+          
+          const buffer = await placeholderResponse.arrayBuffer();
+          return res.send(Buffer.from(buffer));
+        } else {
+          return res.status(404).json({ message: "Image not found" });
+        }
       }
 
       // Set appropriate headers

@@ -15,6 +15,7 @@ export interface Manga {
 
 export interface Chapter {
   id: string;
+  mangaId?: string;
   volume: string;
   chapter: string;
   title: string;

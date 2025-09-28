@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useLocation } from "wouter";
-import { ChevronLeft, ChevronRight, Settings, ArrowLeft, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Settings, ArrowLeft, ZoomIn, ZoomOut, RotateCcw, SkipBack, SkipForward } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,6 +25,13 @@ export function MangaReader({ chapter }: MangaReaderProps) {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   
+  // Fetch all chapters for this manga to enable chapter navigation
+  const { data: allChapters } = useQuery({
+    queryKey: ["/api/manga", chapter.mangaId, "chapters"],
+    queryFn: () => mangaApi.getChapters(chapter.mangaId!),
+    enabled: !!chapter.mangaId,
+  });
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<ViewMode>("vertical");
   const [zoom, setZoom] = useState(100);
@@ -36,6 +43,12 @@ export function MangaReader({ chapter }: MangaReaderProps) {
 
   const images = chapter.images || [];
   const totalPages = images.length;
+
+  // Find current chapter index and adjacent chapters
+  const chapters = allChapters?.data || [];
+  const currentChapterIndex = chapters.findIndex((ch: Chapter) => ch.id === chapter.id);
+  const previousChapter = currentChapterIndex > 0 ? chapters[currentChapterIndex - 1] : null;
+  const nextChapter = currentChapterIndex < chapters.length - 1 ? chapters[currentChapterIndex + 1] : null;
 
   // Update reading progress
   const updateProgressMutation = useMutation({
@@ -49,14 +62,14 @@ export function MangaReader({ chapter }: MangaReaderProps) {
   useEffect(() => {
     if (isAuthenticated && autoProgress && chapter.id) {
       updateProgressMutation.mutate({
-        mangaId: chapter.id.split('-')[0], // Extract manga ID from chapter ID
+        mangaId: chapter.mangaId || chapter.id.split('-')[0], // Use proper mangaId when available
         chapterId: chapter.id,
         pageNumber: currentPage,
         totalPages,
         completed: currentPage === totalPages,
       });
     }
-  }, [currentPage, isAuthenticated, autoProgress, chapter.id, totalPages]);
+  }, [currentPage, isAuthenticated, autoProgress, chapter.id, chapter.mangaId, totalPages]);
 
   // Handle keyboard navigation
   useEffect(() => {
@@ -87,7 +100,12 @@ export function MangaReader({ chapter }: MangaReaderProps) {
           }
           break;
         case "Escape":
-          navigate("/");
+          // Navigate back to manga detail page instead of home
+          if (chapter.mangaId) {
+            navigate(`/manga/${chapter.mangaId}`);
+          } else {
+            navigate("/");
+          }
           break;
       }
     };
@@ -208,7 +226,13 @@ export function MangaReader({ chapter }: MangaReaderProps) {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => navigate("/")}
+                onClick={() => {
+                  if (chapter.mangaId) {
+                    navigate(`/manga/${chapter.mangaId}`);
+                  } else {
+                    navigate("/");
+                  }
+                }}
                 data-testid="back-button"
               >
                 <ArrowLeft className="h-4 w-4" />
@@ -376,35 +400,69 @@ export function MangaReader({ chapter }: MangaReaderProps) {
 
       {/* Reader Navigation */}
       <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40" data-testid="reader-navigation">
-        <Card className="bg-card/90 backdrop-blur-sm">
-          <CardContent className="px-6 py-3 flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handlePreviousPage}
-              disabled={currentPage === 1}
-              data-testid="prev-page-button"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            
-            <div className="flex items-center space-x-2 text-sm" data-testid="page-indicator">
-              <span className="text-foreground font-medium">
-                {currentPage} / {totalPages}
-              </span>
-            </div>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleNextPage}
-              disabled={currentPage === totalPages}
-              data-testid="next-page-button"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col gap-2 items-center">
+          {/* Chapter Navigation */}
+          <Card className="bg-card/90 backdrop-blur-sm">
+            <CardContent className="px-4 py-2 flex items-center space-x-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => previousChapter && navigate(`/reader/${previousChapter.id}`)}
+                disabled={!previousChapter}
+                data-testid="prev-chapter-button"
+                title={previousChapter ? `Previous: Ch. ${previousChapter.chapter}` : "No previous chapter"}
+              >
+                <SkipBack className="h-4 w-4" />
+              </Button>
+              
+              <div className="text-xs text-muted-foreground px-2" data-testid="chapter-indicator">
+                Ch. {chapter.chapter}
+              </div>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => nextChapter && navigate(`/reader/${nextChapter.id}`)}
+                disabled={!nextChapter}
+                data-testid="next-chapter-button"
+                title={nextChapter ? `Next: Ch. ${nextChapter.chapter}` : "No next chapter"}
+              >
+                <SkipForward className="h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+          
+          {/* Page Navigation */}
+          <Card className="bg-card/90 backdrop-blur-sm">
+            <CardContent className="px-6 py-3 flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handlePreviousPage}
+                disabled={currentPage === 1}
+                data-testid="prev-page-button"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              
+              <div className="flex items-center space-x-2 text-sm" data-testid="page-indicator">
+                <span className="text-foreground font-medium">
+                  {currentPage} / {totalPages}
+                </span>
+              </div>
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                data-testid="next-page-button"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Touch/Click areas for mobile navigation */}

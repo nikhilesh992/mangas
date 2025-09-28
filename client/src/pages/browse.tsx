@@ -234,8 +234,8 @@ export default function Browse() {
           )}
 
           {isLoading && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-8" data-testid="browse-loading">
-              {Array.from({ length: 20 }).map((_, i) => (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8" data-testid="browse-loading">
+              {Array.from({ length: 12 }).map((_, i) => (
                 <div 
                   key={i} 
                   className="bg-muted rounded-lg h-64 animate-pulse"
@@ -267,14 +267,14 @@ export default function Browse() {
                 </div>
               ) : (
                 <div 
-                  className={`grid gap-4 mb-8 ${
+                  className={`grid gap-6 mb-8 ${
                     viewMode === "grid" 
-                      ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+                      ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
                       : "grid-cols-1 md:grid-cols-2"
                   }`}
                   data-testid="results-grid"
                 >
-                  {mangaList.map((manga) => (
+                  {mangaList.map((manga: any) => (
                     <MangaCard
                       key={manga.id}
                       manga={manga}
