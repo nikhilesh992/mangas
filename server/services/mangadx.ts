@@ -289,6 +289,21 @@ class MangaDxService {
     }
     return null;
   }
+
+  async getTags(): Promise<MangaDxResponse<any[]>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/manga/tag`);
+      
+      if (!response.ok) {
+        throw new Error(`MangaDx API error: ${response.status} ${response.statusText}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching tags from MangaDx:', error);
+      throw error;
+    }
+  }
 }
 
 export const mangaDxService = new MangaDxService();

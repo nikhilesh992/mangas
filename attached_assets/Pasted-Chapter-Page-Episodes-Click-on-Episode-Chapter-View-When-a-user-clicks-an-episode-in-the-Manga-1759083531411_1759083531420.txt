@@ -1,0 +1,135 @@
+Chapter Page (Episodes)
+
+Click on Episode → Chapter View
+
+When a user clicks an episode in the Manga Details page → it must open the Chapter Reader page.
+
+API: MangaDex provides chapter data via /chapter/{id} + at/images API for the pages.
+
+Each page of the chapter should load in the reader.
+
+Next / Previous Navigation
+
+Default navigation should be disabled (we already discussed).
+
+Instead:
+
+If next chapter exists → load it.
+
+If no next/previous → send user back to the Manga Details page or do nothing.
+
+Redirection Checks
+
+If a chapter is missing / API returns empty → redirect back to Manga Details page.
+
+No white screens allowed.
+
+🔹 Admin Portal
+
+API Connections
+
+Admin should be able to update:
+
+API base URLs (currently MangaDex only, but flexible for future).
+
+Ads settings (networks, banners, custom).
+
+These should reflect on the frontend immediately.
+
+Banner / Ad Management
+
+Admin can upload/update custom banners.
+
+Control ad position (homepage, details, reader).
+
+🔹 Dark Theme
+
+Global dark mode applied across site.
+
+Use Tailwind or theme provider for consistency:
+
+Background → #121212 / #1e1e1e
+
+Text → #ffffff / muted #b0b0b0
+
+Buttons → accent colors (blue/green) with hover effects.
+
+🔹 Homepage Filters
+
+Sorting Options (already listed)
+
+None
+
+Best Match
+
+Latest Upload
+
+Oldest Upload
+
+Title Ascending
+
+Title Descending
+
+Highest Rating
+
+Lowest Rating
+
+Most Follows
+
+Fewest Follows
+
+Recently Added
+
+Oldest Added
+
+Year Ascending
+
+Year Descending
+
+Genre / Tag Filters
+
+Fetch tags from MangaDex (/manga/tag) → includes:
+
+Action
+
+Comedy
+
+Romance
+
+Adventure
+
+Fantasy
+
+Horror
+
+Slice of Life
+
+Drama
+
+And many more…
+
+Add filter UI (multi-select or checkbox).
+
+Combine with sort options → users can sort + filter together.
+
+Other Filters
+
+Status (Ongoing, Completed, Hiatus).
+
+Publication Demographic (Shounen, Shoujo, Seinen, Josei).
+
+Content Rating (Safe, Suggestive, Erotica, Pornographic → if you allow).
+
+🔹 Behavior Summary
+
+Homepage → Always show 20 per page (with pagination).
+
+Filters + Sorting combined.
+
+Clicking on manga → Details Page → Episode list grouped by language.
+
+Clicking episode → Chapter Reader → Next/Prev logic as above.
+
+Admin Portal → manage APIs, ads, banners.
+
+Global Dark Theme.

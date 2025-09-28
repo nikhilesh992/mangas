@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Search, Filter, Grid, List } from "lucide-react";
+import { Filter, Grid, List, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { MangaCard } from "@/components/manga/manga-card";
 // import { AdSlot } from "@/components/ads/ad-slot"; // Disabled due to database not configured
 import { mangaApi } from "@/lib/api";
@@ -25,6 +26,32 @@ export default function Home() {
     offset: 0,
     order: "desc",
   });
+  
+  // Fetch available tags from API
+  const { data: tagsData } = useQuery({
+    queryKey: ["/api/tags"],
+    queryFn: mangaApi.getTags,
+  });
+  
+  const availableTags = tagsData?.data?.map(tag => tag.name) || [];
+  
+  // Enhanced sort options
+  const sortOptions = [
+    { value: "none", label: "None" },
+    { value: "relevance", label: "Best Match" },
+    { value: "latestUploadedChapter", label: "Latest Upload" },
+    { value: "oldestUploadedChapter", label: "Oldest Upload" },
+    { value: "title", label: "Title Ascending" },
+    { value: "title_desc", label: "Title Descending" },
+    { value: "rating", label: "Highest Rating" },
+    { value: "rating_asc", label: "Lowest Rating" },
+    { value: "followedCount", label: "Most Follows" },
+    { value: "followedCount_asc", label: "Fewest Follows" },
+    { value: "createdAt", label: "Recently Added" },
+    { value: "createdAt_asc", label: "Oldest Added" },
+    { value: "year", label: "Year Ascending" },
+    { value: "year_desc", label: "Year Descending" },
+  ];
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
@@ -50,12 +77,22 @@ export default function Home() {
     queryFn: () => mangaApi.getMangaList(searchParams),
   });
 
-  const handleSearch = (query: string) => {
-    setSearchParams(prev => ({ ...prev, search: query, offset: 0 }));
-  };
 
   const handleFilterChange = (key: keyof MangaSearchParams, value: any) => {
     setSearchParams(prev => ({ ...prev, [key]: value, offset: 0 }));
+  };
+  
+  const handleTagToggle = (tag: string) => {
+    const currentTags = searchParams.tags || [];
+    const newTags = currentTags.includes(tag)
+      ? currentTags.filter(t => t !== tag)
+      : [...currentTags, tag];
+    handleFilterChange("tags", newTags.length > 0 ? newTags : undefined);
+  };
+  
+  const removeTag = (tag: string) => {
+    const newTags = (searchParams.tags || []).filter(t => t !== tag);
+    handleFilterChange("tags", newTags.length > 0 ? newTags : undefined);
   };
 
   const handlePageChange = (offset: number) => {
@@ -88,18 +125,6 @@ export default function Home() {
                 )}
               </div>
 
-              {/* Search */}
-              <div className="mb-6">
-                <Label htmlFor="search" className="text-sm font-medium mb-2 block">Search</Label>
-                <Input
-                  id="search"
-                  type="search"
-                  placeholder="Search manga..."
-                  value={searchParams.search || ""}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  data-testid="search-input"
-                />
-              </div>
 
               {/* Status Filter */}
               <div className="mb-6">
@@ -120,6 +145,46 @@ export default function Home() {
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              {/* Tags Filter */}
+              <div className="mb-6">
+                <Label className="text-sm font-medium mb-3 block">Tags</Label>
+                
+                {/* Selected Tags */}
+                {searchParams.tags && searchParams.tags.length > 0 && (
+                  <div className="mb-3">
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {searchParams.tags.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant="secondary"
+                          className="text-xs cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                          onClick={() => removeTag(tag)}
+                          data-testid={`selected-tag-${tag}`}
+                        >
+                          {tag}
+                          <X className="h-3 w-3 ml-1" />
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Tag Selection */}
+                <div className="max-h-40 overflow-y-auto space-y-1">
+                  {availableTags.map((tag) => (
+                    <div key={tag} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`tag-${tag}`}
+                        checked={searchParams.tags?.includes(tag) || false}
+                        onCheckedChange={() => handleTagToggle(tag)}
+                        data-testid={`tag-${tag}`}
+                      />
+                      <Label htmlFor={`tag-${tag}`} className="text-sm cursor-pointer">{tag}</Label>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Content Rating */}
@@ -160,21 +225,9 @@ export default function Home() {
 
         {/* Main Content */}
         <div className="flex-1">
-          {/* Search and Sort Bar */}
+          {/* Sort and View Controls */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex-1 relative">
-              <Input
-                type="search"
-                placeholder="Search manga by title, author, or tags..."
-                value={searchParams.search || ""}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="pl-10"
-                data-testid="main-search-input"
-              />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            </div>
-
-            <div className="flex gap-2">
+            <div className="flex gap-2 ml-auto">
               {isMobile && (
                 <Button
                   variant="outline"
@@ -187,18 +240,19 @@ export default function Home() {
               )}
 
               <Select 
-                value={searchParams.order || "desc"}
-                onValueChange={(value) => handleFilterChange("order", value)}
+                value={searchParams.order || ""}
+                onValueChange={(value) => handleFilterChange("order", value || undefined)}
                 data-testid="sort-select"
               >
-                <SelectTrigger className="w-40">
-                  <SelectValue />
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Sort by..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="desc">Latest</SelectItem>
-                  <SelectItem value="asc">Oldest</SelectItem>
-                  <SelectItem value="title">Title A-Z</SelectItem>
-                  <SelectItem value="year">Year</SelectItem>
+                  {sortOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 

@@ -413,6 +413,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Tags endpoint - fetch available tags from MangaDx
+  app.get("/api/tags", async (req, res) => {
+    try {
+      const result = await mangaDxService.getTags();
+      
+      // Transform tags for frontend use
+      const tags = result.data
+        .filter(tag => tag.attributes.group === 'genre') // Only genre tags
+        .map(tag => ({
+          id: tag.id,
+          name: tag.attributes.name.en || Object.values(tag.attributes.name)[0],
+          group: tag.attributes.group
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
+
+      res.json({
+        data: tags,
+        total: tags.length
+      });
+    } catch (error: any) {
+      console.error('Error fetching tags:', error.message);
+      res.status(500).json({ message: `Failed to fetch tags: ${error.message}` });
+    }
+  });
+
   // User favorites routes
   app.get("/api/favorites", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {

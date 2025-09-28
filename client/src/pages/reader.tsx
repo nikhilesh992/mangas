@@ -7,52 +7,33 @@ import { AdSlot } from "@/components/ads/ad-slot";
 import { mangaApi } from "@/lib/api";
 
 export default function Reader() {
-  const { chapterId } = useParams<{ chapterId: string }>();
+  const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
 
   const { data: chapter, isLoading, error } = useQuery({
-    queryKey: ["/api/chapter", chapterId],
-    queryFn: () => mangaApi.getChapter(chapterId!),
-    enabled: !!chapterId,
+    queryKey: ["/api/chapter", id],
+    queryFn: () => mangaApi.getChapter(id!),
+    enabled: !!id,
   });
 
-  if (!chapterId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" data-testid="reader-no-chapter">
-        <p className="text-muted-foreground">No chapter specified</p>
-      </div>
-    );
+  // If no chapter ID is provided, redirect to home
+  if (!id) {
+    navigate("/");
+    return null;
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" data-testid="reader-error">
-        <div className="text-center max-w-md mx-auto p-6">
-          <h1 className="text-2xl font-bold text-foreground mb-2">Chapter Not Found</h1>
-          <p className="text-muted-foreground mb-6">The chapter you're looking for doesn't exist or is unavailable.</p>
-          
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button 
-              onClick={() => navigate("/")}
-              variant="default"
-              className="flex items-center gap-2"
-            >
-              <Home className="h-4 w-4" />
-              Go Home
-            </Button>
-            
-            <Button 
-              onClick={() => window.history.back()}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Go Back
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
+  // If chapter is missing/API returns empty → redirect back to manga details page
+  if (error || (chapter && !chapter.images?.length)) {
+    // Get manga ID from chapter data - if not available, go to home page
+    const mangaId = chapter?.mangaId;
+    
+    if (mangaId) {
+      navigate(`/manga/${mangaId}`);
+    } else {
+      // If no manga ID available, redirect to home page (prevents 404)
+      navigate("/");
+    }
+    return null;
   }
 
   if (isLoading) {

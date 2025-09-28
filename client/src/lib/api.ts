@@ -78,6 +78,11 @@ export const mangaApi = {
     const response = await apiRequest("GET", `/api/chapter/${chapterId}`);
     return response.json();
   },
+
+  getTags: async () => {
+    const response = await apiRequest("GET", "/api/tags");
+    return response.json();
+  },
 };
 
 // User favorites API

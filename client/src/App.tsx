@@ -18,6 +18,21 @@ import ReadingHistory from "@/pages/reading-history";
 import ApiInfo from "@/pages/api-info";
 import NotFound from "@/pages/not-found";
 
+// Admin Pages
+import { AdminLayout } from "@/components/layout/admin-layout";
+import AdminDashboard from "@/pages/admin/dashboard";
+import AdminAnalytics from "@/pages/admin/analytics";
+import AdminApiConfig from "@/pages/admin/api-config";
+import AdminAds from "@/pages/admin/ads";
+import AdminBlog from "@/pages/admin/blog-admin";
+import AdminUsers from "@/pages/admin/users";
+import AdminSettings from "@/pages/admin/settings";
+import AdminLogin from "@/pages/admin/login";
+
+// Auth Pages
+import AuthLogin from "@/pages/auth/login";
+import AuthRegister from "@/pages/auth/register";
+
 function MainRouter() {
   return (
     <div className="min-h-screen flex flex-col">
@@ -33,6 +48,49 @@ function MainRouter() {
           <Route path="/favorites" component={Favorites} />
           <Route path="/reading-history" component={ReadingHistory} />
           <Route path="/api-info" component={ApiInfo} />
+          
+          {/* Auth Routes */}
+          <Route path="/auth/login" component={AuthLogin} />
+          <Route path="/auth/register" component={AuthRegister} />
+          
+          {/* Admin Routes */}
+          <Route path="/admin" component={() => (
+            <AdminLayout>
+              <AdminDashboard />
+            </AdminLayout>
+          )} />
+          <Route path="/admin/analytics" component={() => (
+            <AdminLayout>
+              <AdminAnalytics />
+            </AdminLayout>
+          )} />
+          <Route path="/admin/api-config" component={() => (
+            <AdminLayout>
+              <AdminApiConfig />
+            </AdminLayout>
+          )} />
+          <Route path="/admin/ads" component={() => (
+            <AdminLayout>
+              <AdminAds />
+            </AdminLayout>
+          )} />
+          <Route path="/admin/blog" component={() => (
+            <AdminLayout>
+              <AdminBlog />
+            </AdminLayout>
+          )} />
+          <Route path="/admin/users" component={() => (
+            <AdminLayout>
+              <AdminUsers />
+            </AdminLayout>
+          )} />
+          <Route path="/admin/settings" component={() => (
+            <AdminLayout>
+              <AdminSettings />
+            </AdminLayout>
+          )} />
+          <Route path="/admin/login" component={AdminLogin} />
+          
           <Route component={NotFound} />
         </Switch>
       </main>
