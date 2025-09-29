@@ -145,6 +145,11 @@ export class DatabaseStorage implements IStorage {
 
   // Blog Posts
   async getBlogPosts(limit = 20, offset = 0, published?: boolean): Promise<BlogPost[]> {
+    if (!db) {
+      // Fallback to empty array when database is not available
+      return [];
+    }
+    
     if (published !== undefined) {
       return await db.select().from(blogPosts)
         .where(eq(blogPosts.published, published))
@@ -160,30 +165,51 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getBlogPost(id: string): Promise<BlogPost | undefined> {
+    if (!db) {
+      // Fallback when database is not available
+      return undefined;
+    }
     const [post] = await db.select().from(blogPosts).where(eq(blogPosts.id, id));
     return post || undefined;
   }
 
   async getBlogPostBySlug(slug: string): Promise<BlogPost | undefined> {
+    if (!db) {
+      // Fallback when database is not available
+      return undefined;
+    }
     const [post] = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug));
     return post || undefined;
   }
 
   async createBlogPost(post: InsertBlogPost): Promise<BlogPost> {
+    if (!db) {
+      throw new Error('Blog post creation not available with memory storage');
+    }
     const [newPost] = await db.insert(blogPosts).values(post).returning();
     return newPost;
   }
 
   async updateBlogPost(id: string, updates: Partial<InsertBlogPost>): Promise<BlogPost> {
+    if (!db) {
+      throw new Error('Blog post updates not available with memory storage');
+    }
     const [post] = await db.update(blogPosts).set({ ...updates, updatedAt: new Date() }).where(eq(blogPosts.id, id)).returning();
     return post;
   }
 
   async deleteBlogPost(id: string): Promise<void> {
+    if (!db) {
+      throw new Error('Blog post deletion not available with memory storage');
+    }
     await db.delete(blogPosts).where(eq(blogPosts.id, id));
   }
 
   async searchBlogPosts(query: string): Promise<BlogPost[]> {
+    if (!db) {
+      // Fallback to empty array when database is not available
+      return [];
+    }
     return await db.select().from(blogPosts)
       .where(
         and(
@@ -199,31 +225,52 @@ export class DatabaseStorage implements IStorage {
 
   // API Configurations
   async getApiConfigurations(): Promise<ApiConfiguration[]> {
+    if (!db) {
+      // Fallback to empty array when database is not available
+      return [];
+    }
     return await db.select().from(apiConfigurations).orderBy(apiConfigurations.priority);
   }
 
   async getApiConfiguration(id: string): Promise<ApiConfiguration | undefined> {
+    if (!db) {
+      // Fallback when database is not available
+      return undefined;
+    }
     const [config] = await db.select().from(apiConfigurations).where(eq(apiConfigurations.id, id));
     return config || undefined;
   }
 
   async getEnabledApiConfigurations(): Promise<ApiConfiguration[]> {
+    if (!db) {
+      // Fallback to empty array when database is not available
+      return [];
+    }
     return await db.select().from(apiConfigurations)
       .where(eq(apiConfigurations.enabled, true))
       .orderBy(apiConfigurations.priority);
   }
 
   async createApiConfiguration(config: InsertApiConfiguration): Promise<ApiConfiguration> {
+    if (!db) {
+      throw new Error('API configuration creation not available with memory storage');
+    }
     const [newConfig] = await db.insert(apiConfigurations).values(config).returning();
     return newConfig;
   }
 
   async updateApiConfiguration(id: string, updates: Partial<InsertApiConfiguration>): Promise<ApiConfiguration> {
+    if (!db) {
+      throw new Error('API configuration updates not available with memory storage');
+    }
     const [config] = await db.update(apiConfigurations).set({ ...updates, updatedAt: new Date() }).where(eq(apiConfigurations.id, id)).returning();
     return config;
   }
 
   async deleteApiConfiguration(id: string): Promise<void> {
+    if (!db) {
+      throw new Error('API configuration deletion not available with memory storage');
+    }
     await db.delete(apiConfigurations).where(eq(apiConfigurations.id, id));
   }
 
