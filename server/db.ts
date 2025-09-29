@@ -13,6 +13,7 @@ let db: any = null;
 // Initialize in-memory storage for testing until Supabase is connected
 const memoryUsers = new Map();
 const memoryAds = new Map();
+const memorySiteSettings = new Map();
 
 // Initialize test users
 async function initializeTestUsers() {
@@ -70,4 +71,4 @@ async function initializeDatabase() {
 initializeDatabase().catch(console.error);
 
 // Export for fallback
-export { pool, db, memoryUsers, memoryAds };
+export { pool, db, memoryUsers, memoryAds, memorySiteSettings };

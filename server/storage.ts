@@ -13,7 +13,7 @@ import {
   type UserSession, type InsertUserSession,
   type SeoSetting, type InsertSeoSetting
 } from "@shared/schema";
-import { db, memoryUsers, memoryAds } from "./db";
+import { db, memoryUsers, memoryAds, memorySiteSettings } from "./db";
 import { eq, desc, like, and, or, sql, isNull } from "drizzle-orm";
 
 export interface IStorage {
@@ -319,10 +319,18 @@ export class DatabaseStorage implements IStorage {
 
   // Site Settings
   async getSiteSettings(): Promise<SiteSetting[]> {
+    if (!db) {
+      // Fallback to memory storage
+      return Array.from(memorySiteSettings.values()).sort((a, b) => a.key.localeCompare(b.key));
+    }
     return await db.select().from(siteSettings).orderBy(siteSettings.key);
   }
 
   async getSiteSetting(key: string): Promise<SiteSetting | undefined> {
+    if (!db) {
+      // Fallback to memory storage
+      return memorySiteSettings.get(key);
+    }
     const [setting] = await db.select().from(siteSettings).where(eq(siteSettings.key, key));
     return setting || undefined;
   }
@@ -332,11 +340,39 @@ export class DatabaseStorage implements IStorage {
     if (existing) {
       return await this.updateSiteSetting(setting.key, setting.value || '');
     }
+    
+    if (!db) {
+      // Fallback to memory storage
+      const newSetting: SiteSetting = {
+        id: `setting-${Date.now()}`,
+        key: setting.key,
+        value: setting.value || '',
+        type: setting.type || 'string',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      memorySiteSettings.set(setting.key, newSetting);
+      return newSetting;
+    }
     const [newSetting] = await db.insert(siteSettings).values(setting).returning();
     return newSetting;
   }
 
   async updateSiteSetting(key: string, value: string): Promise<SiteSetting> {
+    if (!db) {
+      // Fallback to memory storage
+      const existing = memorySiteSettings.get(key);
+      const updatedSetting: SiteSetting = {
+        id: existing?.id || `setting-${Date.now()}`,
+        key,
+        value,
+        type: existing?.type || 'string',
+        createdAt: existing?.createdAt || new Date(),
+        updatedAt: new Date(),
+      };
+      memorySiteSettings.set(key, updatedSetting);
+      return updatedSetting;
+    }
     const [setting] = await db.update(siteSettings)
       .set({ value, updatedAt: new Date() })
       .where(eq(siteSettings.key, key))
