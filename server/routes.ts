@@ -239,6 +239,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         let result;
         
+        // Convert tag names to UUIDs if tags are provided
+        let tagUUIDs: string[] | undefined = undefined;
+        let excludedTagUUIDs: string[] | undefined = undefined;
+        
+        if (tags) {
+          const tagMap = await getTagNameToIdMap();
+          const tagNames = Array.isArray(tags) ? tags as string[] : [tags as string];
+          tagUUIDs = tagNames
+            .map(name => tagMap.get(name.toLowerCase()))
+            .filter((id): id is string => id !== undefined);
+        }
+        
+        if (excludedTags) {
+          const tagMap = await getTagNameToIdMap();
+          const excludedTagNames = Array.isArray(excludedTags) ? excludedTags as string[] : [excludedTags as string];
+          excludedTagUUIDs = excludedTagNames
+            .map(name => tagMap.get(name.toLowerCase()))
+            .filter((id): id is string => id !== undefined);
+        }
+
         // If search parameter is provided, use search endpoint
         if (search) {
           result = await mangaDxService.searchManga(search as string, {
@@ -325,8 +345,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             hasAvailableChapters: true,
             contentRating: Array.isArray(contentRating) ? contentRating as string[] : [contentRating as string],
             status: status ? (Array.isArray(status) ? status as string[] : [status as string]) : undefined,
-            tags: tags ? (Array.isArray(tags) ? tags as string[] : [tags as string]) : undefined,
-            excludedTags: excludedTags ? (Array.isArray(excludedTags) ? excludedTags as string[] : [excludedTags as string]) : undefined
+            tags: tagUUIDs,
+            excludedTags: excludedTagUUIDs
           });
         }
 
@@ -531,6 +551,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+
+  // Helper function to convert tag names to UUIDs
+  const getTagNameToIdMap = async (): Promise<Map<string, string>> => {
+    try {
+      const result = await mangaDxService.getTags();
+      const tagMap = new Map<string, string>();
+      
+      result.data
+        .filter(tag => tag.attributes.group === 'genre') // Only genre tags
+        .forEach(tag => {
+          const name = tag.attributes.name.en || Object.values(tag.attributes.name)[0];
+          if (name) {
+            tagMap.set(name.toLowerCase(), tag.id);
+          }
+        });
+      
+      return tagMap;
+    } catch (error) {
+      console.error('Error fetching tag map:', error);
+      return new Map();
+    }
+  };
 
   // Tags endpoint - fetch available tags from MangaDx
   app.get("/api/tags", async (req, res) => {
