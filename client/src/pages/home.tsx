@@ -226,6 +226,11 @@ export default function Home() {
               </Button>
             </CardContent>
           </Card>
+
+          {/* Ad Slot - Below Filter */}
+          <div className="mt-4">
+            <AdSlot position="homepage_left_filter" />
+          </div>
         </div>
 
         {/* Main Content */}

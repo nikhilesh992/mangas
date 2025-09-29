@@ -13,6 +13,7 @@ interface AdSlotProps {
 const DEFAULT_AD_SIZES: Record<string, { width: number; height: number }> = {
   homepage_top: { width: 728, height: 90 }, // Leaderboard
   homepage_bottom: { width: 728, height: 90 }, // Leaderboard
+  homepage_left_filter: { width: 300, height: 250 }, // Medium Rectangle (sidebar)
   browse_top: { width: 728, height: 90 }, // Leaderboard
   manga_detail_top: { width: 300, height: 250 }, // Medium Rectangle
   manga_detail_inline: { width: 336, height: 280 }, // Large Rectangle
