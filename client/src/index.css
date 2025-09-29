@@ -305,8 +305,8 @@
     border-color: hsl(187, 78%, 54%);
   }
   
-  /* Enhanced link hover states */
-  a:hover {
+  /* Enhanced link hover states - Only for content links, not navigation */
+  .content-link:hover {
     color: hsl(195, 85%, 60%);
     text-decoration: underline;
     text-decoration-color: hsla(195, 85%, 60%, 0.6);
