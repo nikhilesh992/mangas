@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, Globe, Key, Database, Shield, Bell } from "lucide-react";
+import { Save, Globe, Key, Database, Shield, Bell, Download, Upload, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -88,6 +88,7 @@ export default function AdminSettings() {
   const [activeTab, setActiveTab] = useState("general");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Since settings endpoints might not be fully implemented, using default values
   const settings = defaultSettings;
@@ -144,6 +145,72 @@ export default function AdminSettings() {
     },
   });
 
+  // Database backup mutation
+  const backupMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/admin/backup", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error("Backup failed");
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Create and download backup file
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `mangaverse-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({ title: "Database backup created successfully" });
+    },
+    onError: () => {
+      toast({ title: "Backup failed", variant: "destructive" });
+    },
+  });
+
+  // Database restore mutation
+  const restoreMutation = useMutation({
+    mutationFn: async ({ backupData, clearExisting }: { backupData: any; clearExisting: boolean }) => {
+      const response = await fetch("/api/admin/restore", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          backupData,
+          options: { clearExisting }
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Restore failed");
+      }
+      
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Database restored successfully" });
+      // Invalidate all queries to refresh data
+      queryClient.invalidateQueries();
+    },
+    onError: () => {
+      toast({ title: "Restore failed", variant: "destructive" });
+    },
+  });
+
   const onGeneralSubmit = (data: GeneralSettings) => {
     saveSettingsMutation.mutate({ category: "General", settings: data });
   };
@@ -160,6 +227,78 @@ export default function AdminSettings() {
     saveSettingsMutation.mutate({ category: "Notifications", settings: data });
   };
 
+  // Handle backup creation
+  const handleCreateBackup = () => {
+    backupMutation.mutate();
+  };
+
+  // Handle file upload for restore
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const backupData = JSON.parse(e.target?.result as string);
+          
+          // Validate backup data structure
+          if (!backupData.tables || !backupData.version) {
+            throw new Error("Invalid backup file format");
+          }
+          
+          const confirmed = confirm(
+            "Are you sure you want to restore from this backup? This will add data to your database."
+          );
+          
+          if (confirmed) {
+            restoreMutation.mutate({ backupData, clearExisting: false });
+          }
+        } catch (error) {
+          toast({ 
+            title: "Invalid backup file", 
+            description: "Please select a valid backup JSON file",
+            variant: "destructive" 
+          });
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  // Handle restore with clear existing data
+  const handleRestoreWithClear = () => {
+    if (fileInputRef.current?.files?.[0]) {
+      const file = fileInputRef.current.files[0];
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const backupData = JSON.parse(e.target?.result as string);
+          
+          const confirmed = confirm(
+            "⚠️ WARNING: This will completely replace all existing data with the backup data. This action cannot be undone. Are you sure?"
+          );
+          
+          if (confirmed) {
+            restoreMutation.mutate({ backupData, clearExisting: true });
+          }
+        } catch (error) {
+          toast({ 
+            title: "Invalid backup file", 
+            description: "Please select a valid backup JSON file",
+            variant: "destructive" 
+          });
+        }
+      };
+      reader.readAsText(file);
+    } else {
+      toast({ 
+        title: "No file selected", 
+        description: "Please select a backup file first",
+        variant: "destructive" 
+      });
+    }
+  };
+
   return (
     <div className="space-y-8" data-testid="admin-settings">
       <div>
@@ -172,7 +311,7 @@ export default function AdminSettings() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} data-testid="settings-tabs">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="general" data-testid="general-tab">
             <Globe className="h-4 w-4 mr-2" />
             General
@@ -188,6 +327,10 @@ export default function AdminSettings() {
           <TabsTrigger value="notifications" data-testid="notifications-tab">
             <Bell className="h-4 w-4 mr-2" />
             Notifications
+          </TabsTrigger>
+          <TabsTrigger value="database" data-testid="database-tab">
+            <Database className="h-4 w-4 mr-2" />
+            Database
           </TabsTrigger>
         </TabsList>
 
@@ -560,6 +703,106 @@ export default function AdminSettings() {
               </form>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="database" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Backup Card */}
+            <Card data-testid="backup-card">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Download className="h-5 w-5 mr-2" />
+                  Database Backup
+                </CardTitle>
+                <CardDescription>
+                  Create a backup of all your application data
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  <p>This will create a JSON file containing:</p>
+                  <ul className="list-disc list-inside mt-2 space-y-1">
+                    <li>User accounts and settings</li>
+                    <li>Blog posts and content</li>
+                    <li>Ad configurations</li>
+                    <li>Site settings</li>
+                    <li>User favorites and reading progress</li>
+                  </ul>
+                </div>
+                
+                <Button 
+                  onClick={handleCreateBackup}
+                  disabled={backupMutation.isPending}
+                  className="w-full"
+                  data-testid="create-backup-button"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  {backupMutation.isPending ? "Creating Backup..." : "Create Backup"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Restore Card */}
+            <Card data-testid="restore-card">
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Upload className="h-5 w-5 mr-2" />
+                  Database Restore
+                </CardTitle>
+                <CardDescription>
+                  Restore data from a previous backup file
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  <p>Select a backup JSON file to restore data.</p>
+                  <p className="mt-2">
+                    <strong>Note:</strong> This will add data to your existing database without removing current data.
+                  </p>
+                </div>
+                
+                <div>
+                  <Label htmlFor="backup-file">Select Backup File</Label>
+                  <Input
+                    id="backup-file"
+                    type="file"
+                    ref={fileInputRef}
+                    accept=".json"
+                    onChange={handleFileUpload}
+                    data-testid="backup-file-input"
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-2">
+                  <Button 
+                    onClick={() => fileInputRef.current?.click()}
+                    variant="outline"
+                    disabled={restoreMutation.isPending}
+                    className="w-full"
+                    data-testid="restore-add-button"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {restoreMutation.isPending ? "Restoring..." : "Restore (Add to existing)"}
+                  </Button>
+                  
+                  <Button 
+                    onClick={handleRestoreWithClear}
+                    variant="destructive"
+                    disabled={restoreMutation.isPending}
+                    className="w-full"
+                    data-testid="restore-replace-button"
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Replace All Data
+                  </Button>
+                </div>
+                
+                <div className="text-xs text-muted-foreground bg-muted p-3 rounded">
+                  <p><strong>⚠️ Replace All Data:</strong> This will completely remove all existing data and replace it with the backup data. This action cannot be undone.</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

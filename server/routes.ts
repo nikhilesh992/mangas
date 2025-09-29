@@ -804,6 +804,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin routes - Database Backup & Restore
+  app.get("/api/admin/backup", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const backupData = await storage.createBackup();
+      
+      // Set headers for file download
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="mangaverse-backup-${new Date().toISOString().split('T')[0]}.json"`);
+      
+      res.json(backupData);
+    } catch (error: any) {
+      res.status(500).json({ message: `Backup failed: ${error.message}` });
+    }
+  });
+
+  app.post("/api/admin/restore", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const { backupData, options } = req.body;
+      
+      if (!backupData) {
+        return res.status(400).json({ message: "Backup data is required" });
+      }
+      
+      const result = await storage.restoreFromBackup(backupData, options || {});
+      
+      res.json({ 
+        message: "Database restored successfully", 
+        restored: result 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: `Restore failed: ${error.message}` });
+    }
+  });
+
   // Image proxy route to handle CORS issues with MangaDx images
   app.get("/api/image-proxy", async (req, res) => {
     try {

@@ -63,6 +63,10 @@ export interface IStorage {
   getReadingProgress(userId: string, mangaId: string): Promise<ReadingProgress | undefined>;
   updateReadingProgress(progress: InsertReadingProgress): Promise<ReadingProgress>;
   deleteReadingProgress(userId: string, mangaId: string): Promise<void>;
+
+  // Database Backup & Restore
+  createBackup(): Promise<any>;
+  restoreFromBackup(backupData: any, options?: { clearExisting?: boolean }): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -371,6 +375,151 @@ export class DatabaseStorage implements IStorage {
   async deleteReadingProgress(userId: string, mangaId: string): Promise<void> {
     await db.delete(readingProgress)
       .where(and(eq(readingProgress.userId, userId), eq(readingProgress.mangaId, mangaId)));
+  }
+
+  // Database Backup & Restore
+  async createBackup(): Promise<any> {
+    if (!db) {
+      throw new Error('Database not available for backup');
+    }
+
+    try {
+      // Fetch all data from all tables
+      const [
+        allUsers,
+        allBlogPosts,
+        allApiConfigurations,
+        allAds,
+        allSiteSettings,
+        allUserFavorites,
+        allReadingProgress
+      ] = await Promise.all([
+        db.select().from(users),
+        db.select().from(blogPosts),
+        db.select().from(apiConfigurations),
+        db.select().from(ads),
+        db.select().from(siteSettings),
+        db.select().from(userFavorites),
+        db.select().from(readingProgress)
+      ]);
+
+      const backupData = {
+        version: "1.0",
+        timestamp: new Date().toISOString(),
+        database: "mangaverse",
+        tables: {
+          users: allUsers,
+          blogPosts: allBlogPosts,
+          apiConfigurations: allApiConfigurations,
+          ads: allAds,
+          siteSettings: allSiteSettings,
+          userFavorites: allUserFavorites,
+          readingProgress: allReadingProgress
+        },
+        counts: {
+          users: allUsers.length,
+          blogPosts: allBlogPosts.length,
+          apiConfigurations: allApiConfigurations.length,
+          ads: allAds.length,
+          siteSettings: allSiteSettings.length,
+          userFavorites: allUserFavorites.length,
+          readingProgress: allReadingProgress.length
+        }
+      };
+
+      return backupData;
+    } catch (error: any) {
+      throw new Error(`Backup creation failed: ${error.message}`);
+    }
+  }
+
+  async restoreFromBackup(backupData: any, options: { clearExisting?: boolean } = {}): Promise<any> {
+    if (!db) {
+      throw new Error('Database not available for restore');
+    }
+
+    try {
+      // Validate backup data structure
+      if (!backupData || !backupData.tables) {
+        throw new Error('Invalid backup data format');
+      }
+
+      const { tables } = backupData;
+      const { clearExisting = false } = options;
+      const restored = {
+        users: 0,
+        blogPosts: 0,
+        apiConfigurations: 0,
+        ads: 0,
+        siteSettings: 0,
+        userFavorites: 0,
+        readingProgress: 0
+      };
+
+      // Clear existing data if requested
+      if (clearExisting) {
+        await Promise.all([
+          db.delete(readingProgress),
+          db.delete(userFavorites),
+          db.delete(blogPosts),
+          db.delete(ads),
+          db.delete(siteSettings),
+          db.delete(apiConfigurations),
+          // Note: Keep users last due to foreign key constraints
+        ]);
+        // Clear users last
+        await db.delete(users);
+      }
+
+      // Restore data in order (respecting foreign key dependencies)
+      
+      // 1. Users first (required for other tables)
+      if (tables.users && tables.users.length > 0) {
+        await db.insert(users).values(tables.users).onConflictDoNothing();
+        restored.users = tables.users.length;
+      }
+
+      // 2. Independent tables
+      if (tables.apiConfigurations && tables.apiConfigurations.length > 0) {
+        await db.insert(apiConfigurations).values(tables.apiConfigurations).onConflictDoNothing();
+        restored.apiConfigurations = tables.apiConfigurations.length;
+      }
+
+      if (tables.ads && tables.ads.length > 0) {
+        await db.insert(ads).values(tables.ads).onConflictDoNothing();
+        restored.ads = tables.ads.length;
+      }
+
+      if (tables.siteSettings && tables.siteSettings.length > 0) {
+        await db.insert(siteSettings).values(tables.siteSettings).onConflictDoNothing();
+        restored.siteSettings = tables.siteSettings.length;
+      }
+
+      // 3. User-dependent tables
+      if (tables.blogPosts && tables.blogPosts.length > 0) {
+        await db.insert(blogPosts).values(tables.blogPosts).onConflictDoNothing();
+        restored.blogPosts = tables.blogPosts.length;
+      }
+
+      if (tables.userFavorites && tables.userFavorites.length > 0) {
+        await db.insert(userFavorites).values(tables.userFavorites).onConflictDoNothing();
+        restored.userFavorites = tables.userFavorites.length;
+      }
+
+      if (tables.readingProgress && tables.readingProgress.length > 0) {
+        await db.insert(readingProgress).values(tables.readingProgress).onConflictDoNothing();
+        restored.readingProgress = tables.readingProgress.length;
+      }
+
+      return {
+        success: true,
+        restored,
+        backupVersion: backupData.version,
+        backupTimestamp: backupData.timestamp
+      };
+    } catch (error: any) {
+      throw new Error(`Restore failed: ${error.message}`);
+    }
   }
 }
 
