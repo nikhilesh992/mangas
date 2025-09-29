@@ -1,5 +1,6 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
+import { sql } from 'drizzle-orm';
 import ws from "ws";
 import * as schema from "@shared/schema";
 import { AuthService } from './services/auth';
@@ -39,20 +40,30 @@ async function initializeTestUsers() {
   console.log('✅ Test users initialized: admin/password123, user1/password123');
 }
 
-if (process.env.DATABASE_URL) {
-  try {
-    pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    db = drizzle({ client: pool, schema });
-    console.log('✅ Connected to Supabase database');
-  } catch (error: any) {
-    console.warn('❌ Failed to connect to Supabase:', error.message);
-    console.log('🔄 Using in-memory storage for testing...');
-    initializeTestUsers();
+async function initializeDatabase() {
+  if (process.env.DATABASE_URL) {
+    try {
+      pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      const testDb = drizzle({ client: pool, schema });
+      
+      // Test the actual connection
+      await testDb.execute(sql`SELECT 1`);
+      db = testDb;
+      console.log('✅ Connected to Supabase database');
+    } catch (error: any) {
+      console.warn('❌ Failed to connect to Supabase:', error.message);
+      console.log('🔄 Using in-memory storage for testing...');
+      db = null; // Ensure db is null for fallback
+      await initializeTestUsers();
+    }
+  } else {
+    console.warn("DATABASE_URL not set. Using in-memory storage for testing...");
+    await initializeTestUsers();
   }
-} else {
-  console.warn("DATABASE_URL not set. Using in-memory storage for testing...");
-  initializeTestUsers();
 }
+
+// Initialize database connection
+initializeDatabase().catch(console.error);
 
 // Export both for fallback
 export { pool, db, memoryUsers };
