@@ -102,8 +102,8 @@ function MainRouter() {
           
           <Route component={NotFound} />
         </Switch>
+        <Footer />
       </main>
-      <Footer />
     </div>
   );
 }
