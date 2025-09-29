@@ -20,6 +20,7 @@ export const authApi = {
 
   getProfile: async () => {
     const response = await apiRequest("GET", "/api/auth/me");
+    return response.json();
   }
 };
 
