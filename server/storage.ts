@@ -255,6 +255,8 @@ export class DatabaseStorage implements IStorage {
         adScript: ad.adScript ?? null,
         bannerImage: ad.bannerImage ?? null,
         bannerLink: ad.bannerLink ?? null,
+        width: ad.width ?? 0,
+        height: ad.height ?? 0,
         slots: ad.slots ?? null,
         enabled: ad.enabled ?? true,
         createdAt: new Date()

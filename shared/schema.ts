@@ -49,6 +49,8 @@ export const ads = pgTable("ads", {
   adScript: text("ad_script"),
   bannerImage: text("banner_image"),
   bannerLink: text("banner_link"),
+  width: integer("width").default(0), // 0 means use default size
+  height: integer("height").default(0), // 0 means use default size
   slots: text("slots").array().default([]),
   enabled: boolean("enabled").default(true),
   createdAt: timestamp("created_at").defaultNow(),

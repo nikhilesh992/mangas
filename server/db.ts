@@ -44,15 +44,18 @@ async function initializeTestUsers() {
 async function initializeDatabase() {
   if (process.env.DATABASE_URL) {
     try {
-      pool = new Pool({ connectionString: process.env.DATABASE_URL });
+      pool = new Pool({ 
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+      });
       const testDb = drizzle({ client: pool, schema });
       
       // Test the actual connection
       await testDb.execute(sql`SELECT 1`);
       db = testDb;
-      console.log('✅ Connected to Supabase database');
+      console.log('✅ Connected to PostgreSQL database');
     } catch (error: any) {
-      console.warn('❌ Failed to connect to Supabase:', error.message);
+      console.warn('❌ Failed to connect to PostgreSQL:', error.message);
       console.log('🔄 Using in-memory storage for testing...');
       db = null; // Ensure db is null for fallback
       await initializeTestUsers();
