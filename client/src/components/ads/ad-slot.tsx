@@ -113,15 +113,6 @@ export function AdSlot({ position, className = "" }: AdSlotProps) {
   );
   const hasBanners = banners && banners.length > 0;
 
-  // Debugging
-  console.log(`AdSlot[${position}]:`, {
-    adNetworks,
-    banners,
-    hasAdNetworks,
-    hasBanners,
-    willRender: hasAdNetworks || hasBanners
-  });
-
   if (!hasAdNetworks && !hasBanners) {
     return null;
   }
