@@ -1,0 +1,139 @@
+🔹 Dynamic Ad Rendering Plan (Demo Ads)
+1️⃣ Purpose
+
+Display demo ads dynamically across all pages.
+
+Support any ad network script and banner ads.
+
+Use admin panel to add/edit/enable/disable ads.
+
+Respect custom width/height, fallback to defaults if 0.
+
+2️⃣ Admin Panel Setup
+
+Admin should be able to:
+
+Add a network ad:
+
+networkName (e.g., AdSense, Adsterra, other)
+
+adScript (paste the ad code)
+
+Assign slot (homepage_top, reader_bottom, etc.)
+
+Set width/height (0 → default sizes)
+
+Enable/disable ad
+
+Add a banner ad:
+
+bannerImage (URL or uploaded image)
+
+bannerLink (clickable URL)
+
+Assign slot
+
+Set width/height (0 → default)
+
+Enable/disable ad
+
+Preview ads before publishing.
+
+Save changes dynamically to the local database.
+
+3️⃣ Demo Ads Example
+
+Network Ad (AdSense style):
+
+{
+  "type": "network",
+  "networkName": "AdSense Demo",
+  "adScript": "<script>/* Demo AdSense Script */</script>",
+  "slot": "homepage_top",
+  "width": 728,
+  "height": 90,
+  "enabled": true
+}
+
+
+Network Ad (Adsterra style):
+
+{
+  "type": "network",
+  "networkName": "Adsterra Demo",
+  "adScript": "<script>/* Demo Adsterra Script */</script>",
+  "slot": "reader_bottom",
+  "width": 300,
+  "height": 250,
+  "enabled": true
+}
+
+
+Banner Ad:
+
+{
+  "type": "banner",
+  "bannerImage": "https://example.com/demo-banner.jpg",
+  "bannerLink": "https://example.com",
+  "slot": "manga_detail_inline",
+  "width": 336,
+  "height": 280,
+  "enabled": true
+}
+
+4️⃣ Frontend Rendering Logic
+
+Steps for each ad slot:
+
+Fetch all enabled ads for the given slot from local database.
+
+For each ad:
+
+If adScript exists → inject dynamically using dangerouslySetInnerHTML or equivalent.
+
+If bannerImage exists → render:
+
+<a href="bannerLink" target="_blank" rel="noopener">
+  <img src="bannerImage" width="ad.width || defaultWidth" height="ad.height || defaultHeight" style="object-fit: cover; max-width: 100%;" />
+</a>
+
+
+If width or height = 0 → fallback to DEFAULT_AD_SIZES based on slot type.
+
+Make sure the container respects dimensions (network scripts or banners).
+
+5️⃣ Admin Publish Flow
+
+Admin adds demo ads via panel.
+
+Admin clicks Publish button:
+
+Saves all changes to local DB.
+
+Updates frontend dynamically (hot reload or fetch latest ads).
+
+Any errors in ad scripts or images:
+
+Catch and log errors.
+
+Skip the faulty ad but continue rendering others.
+
+6️⃣ Ad Slots to Support
+
+homepage_top, homepage_bottom
+
+manga_detail_top, manga_detail_inline
+
+reader_top, reader_bottom
+
+blog_top, blog_post_inline
+
+7️⃣ Goal
+
+All demo ads (network + banner) render dynamically.
+
+Admin can add/update/remove any ad network or banner without hardcoding.
+
+Width/height settings respected, default sizes applied automatically.
+
+System fully local database-driven and ready for production.

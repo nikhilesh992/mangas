@@ -33,6 +33,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    host: true, // Essential for Replit - binds to 0.0.0.0
     fs: {
       strict: true,
       deny: ["**/.*"],
