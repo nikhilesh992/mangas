@@ -20,7 +20,7 @@ export function Footer() {
   ].filter(link => link.url && link.url.trim() !== '');
 
   return (
-    <footer className="bg-[#111] text-white py-6 shadow-[0_-2px_10px_rgba(0,0,0,0.3)] border-t border-gray-800" data-testid="main-footer">
+    <footer className="bg-[#111] text-white py-8 mt-12 sm:mt-16 shadow-[0_-2px_10px_rgba(0,0,0,0.3)] border-t border-gray-800" data-testid="main-footer">
       <div className="container mx-auto px-4 text-center">
         {/* Custom Message */}
         {customMessage && (

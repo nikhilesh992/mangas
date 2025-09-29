@@ -26,6 +26,14 @@ const upload = multer({
   },
 });
 
+// Helper function to extract client IP address
+function getClientIP(req: any): string {
+  return req.headers['x-forwarded-for'] || 
+         req.connection.remoteAddress || 
+         req.socket.remoteAddress ||
+         'unknown';
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   // Server-Sent Events setup for real-time settings updates
@@ -115,7 +123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/manga/:id/comments", authenticateToken, async (req, res) => {
+  app.post("/api/manga/:id/comments", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params;
       const { content } = insertMangaCommentSchema.parse(req.body);
@@ -134,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/manga/:mangaId/comments/:commentId", authenticateToken, async (req, res) => {
+  app.delete("/api/manga/:mangaId/comments/:commentId", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const { commentId } = req.params;
       const userId = req.user!.userId;
@@ -1047,7 +1055,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sessionId,
         position,
         path,
-        ipAddress: getClientIP(req),
       });
 
       res.status(201).json({ success: true, result });

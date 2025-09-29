@@ -10,6 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 
+// Type definitions
+type UserRole = "admin" | "moderator" | "user";
+type UserStatus = "active" | "suspended" | "banned";
+
 // Mock user data since user management isn't fully implemented in the backend yet
 const mockUsers = [
   {
@@ -57,9 +61,6 @@ const mockUsers = [
     readingProgress: 12,
   }
 ];
-
-type UserStatus = "active" | "banned" | "suspended";
-type UserRole = "admin" | "moderator" | "user";
 
 interface MockUser {
   id: string;
@@ -314,7 +315,7 @@ export default function AdminUsers() {
                       </TableCell>
                       <TableCell>
                         <Badge 
-                          variant={getRoleBadgeVariant(user.role)}
+                          variant={getRoleBadgeVariant(user.role as UserRole)}
                           data-testid={`role-badge-${user.id}`}
                         >
                           {user.role}
@@ -322,7 +323,7 @@ export default function AdminUsers() {
                       </TableCell>
                       <TableCell>
                         <Badge 
-                          variant={getStatusBadgeVariant(user.status)}
+                          variant={getStatusBadgeVariant(user.status as UserStatus)}
                           data-testid={`status-badge-${user.id}`}
                         >
                           {user.status}

@@ -6,7 +6,7 @@ import { adminApi } from "@/lib/api";
 export default function AdminDashboard() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ["/api/admin/stats"],
-    queryFn: adminApi.getStats,
+    queryFn: () => adminApi.getStats(),
   });
 
   if (isLoading) {

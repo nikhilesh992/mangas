@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Filter, Grid, List, X } from "lucide-react";
+import { Filter, Grid, List, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +18,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import type { MangaSearchParams } from "@/lib/types";
 
 export default function Home() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { isAuthenticated } = useAuth();
   const isMobile = useIsMobile();
 
@@ -28,6 +28,8 @@ export default function Home() {
     order: "latestUploadedChapter",
     contentRating: ["safe", "suggestive"],
   });
+  
+  const [searchInput, setSearchInput] = useState("");
   
   // Fetch available tags from API
   const { data: tagsData } = useQuery({
@@ -67,22 +69,68 @@ export default function Home() {
       contentRating: ["safe", "suggestive"],
     };
 
-    if (urlParams.get("search")) params.search = urlParams.get("search")!;
+    if (urlParams.get("search")) {
+      params.search = urlParams.get("search")!;
+      setSearchInput(urlParams.get("search")!);
+    }
     if (urlParams.get("status")) params.status = [urlParams.get("status")!];
-    if (urlParams.get("tags")) params.tags = [urlParams.get("tags")!];
+    if (urlParams.get("tags")) {
+      const tags = urlParams.getAll("tags");
+      if (tags.length > 0) params.tags = tags;
+    }
     if (urlParams.get("order")) params.order = urlParams.get("order")!;
+    if (urlParams.get("contentRating")) {
+      const ratings = urlParams.getAll("contentRating");
+      if (ratings.length > 0) params.contentRating = ratings;
+    }
 
     setSearchParams(params);
   }, [location]);
+
+  // Update URL when search params change
+  useEffect(() => {
+    const urlParams = new URLSearchParams();
+    
+    if (searchParams.search) urlParams.set("search", searchParams.search);
+    if (searchParams.status && searchParams.status.length > 0) {
+      searchParams.status.forEach(s => urlParams.append("status", s));
+    }
+    if (searchParams.tags && searchParams.tags.length > 0) {
+      searchParams.tags.forEach(t => urlParams.append("tags", t));
+    }
+    if (searchParams.order && searchParams.order !== "latestUploadedChapter") {
+      urlParams.set("order", searchParams.order);
+    }
+    if (searchParams.contentRating && searchParams.contentRating.length > 0) {
+      searchParams.contentRating.forEach(r => urlParams.append("contentRating", r));
+    }
+    if (searchParams.offset && searchParams.offset > 0) {
+      urlParams.set("offset", searchParams.offset.toString());
+    }
+
+    const newUrl = urlParams.toString() ? `/?${urlParams.toString()}` : "/";
+    if (newUrl !== location) {
+      navigate(newUrl, { replace: true });
+    }
+  }, [searchParams, location, navigate]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["/api/manga", "home", searchParams],
     queryFn: () => mangaApi.getMangaList(searchParams),
   });
 
-
   const handleFilterChange = (key: keyof MangaSearchParams, value: any) => {
     setSearchParams(prev => ({ ...prev, [key]: value, offset: 0 }));
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleFilterChange("search", searchInput.trim() || undefined);
+  };
+
+  const handleClearSearch = () => {
+    setSearchInput("");
+    handleFilterChange("search", undefined);
   };
   
   const handleTagToggle = (tag: string) => {
@@ -111,8 +159,8 @@ export default function Home() {
     <div className="flex-1 bg-background" data-testid="home-page">
 
       {/* Main Content Section */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+      <div className="container mx-auto px-4 py-4 sm:py-8">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
         {/* Filters Sidebar */}
         <div className={`lg:w-64 flex-shrink-0 ${isMobile && !showFilters ? "hidden" : ""}`}>
           <Card className="sticky top-24" data-testid="filters-card">
@@ -220,10 +268,13 @@ export default function Home() {
 
               <Button 
                 className="w-full" 
-                onClick={() => setSearchParams({ limit: 20, offset: 0, order: "latestUploadedChapter", contentRating: ["safe", "suggestive"] })}
+                onClick={() => {
+                  setSearchInput("");
+                  setSearchParams({ limit: 20, offset: 0, order: "latestUploadedChapter", contentRating: ["safe", "suggestive"] });
+                }}
                 data-testid="clear-filters"
               >
-                Clear Filters
+                Clear All Filters
               </Button>
             </CardContent>
           </Card>
@@ -236,12 +287,54 @@ export default function Home() {
 
         {/* Main Content */}
         <div className="flex-1">
+          {/* Search Bar */}
+          <div className="mb-6">
+            <form onSubmit={handleSearch} className="flex gap-3">
+              <div className="relative flex-1">
+                <Input
+                  type="search"
+                  placeholder="Search manga titles, authors, genres..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="pl-10 pr-10"
+                  data-testid="main-search-input"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                {searchInput && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearSearch}
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0"
+                    data-testid="clear-search-button"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <Button type="submit" data-testid="search-button">
+                Search
+              </Button>
+            </form>
+            {searchParams.search && (
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Searching for:</span>
+                <Badge variant="secondary" className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground transition-colors" onClick={handleClearSearch}>
+                  {searchParams.search}
+                  <X className="h-3 w-3 ml-1" />
+                </Badge>
+              </div>
+            )}
+          </div>
+
           {/* Sort and View Controls */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
-            <div className="flex gap-2 ml-auto">
+            <div className="flex gap-3 sm:gap-4 sm:ml-auto w-full sm:w-auto">
               {isMobile && (
                 <Button
-                  variant="outline"
+                  variant="secondary"
+                  className="flex-1 sm:flex-initial"
                   onClick={() => setShowFilters(true)}
                   data-testid="show-filters-mobile"
                 >
@@ -251,11 +344,11 @@ export default function Home() {
               )}
 
               <Select 
-                value={searchParams.order || ""}
+                value={searchParams.order || "latestUploadedChapter"}
                 onValueChange={(value) => handleFilterChange("order", value || undefined)}
                 data-testid="sort-select"
               >
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="flex-1 sm:flex-initial sm:w-48">
                   <SelectValue placeholder="Sort by..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -267,12 +360,13 @@ export default function Home() {
                 </SelectContent>
               </Select>
 
-              <div className="flex border border-border rounded-lg">
+              <div className="flex bg-muted rounded-lg p-1 gap-1">
                 <Button
                   variant={viewMode === "grid" ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setViewMode("grid")}
                   data-testid="grid-view"
+                  className="px-3 py-1.5"
                 >
                   <Grid className="h-4 w-4" />
                 </Button>
@@ -281,6 +375,7 @@ export default function Home() {
                   size="sm"
                   onClick={() => setViewMode("list")}
                   data-testid="list-view"
+                  className="px-3 py-1.5"
                 >
                   <List className="h-4 w-4" />
                 </Button>
@@ -301,7 +396,7 @@ export default function Home() {
           )}
 
           {isLoading && (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8" data-testid="home-loading">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 mb-8" data-testid="home-loading">
               {Array.from({ length: 12 }).map((_, i) => (
                 <div 
                   key={i} 
@@ -323,21 +418,24 @@ export default function Home() {
 
               {mangaList.length === 0 ? (
                 <div className="text-center py-16" data-testid="no-results">
-                  <p className="text-muted-foreground text-lg">No manga found matching your criteria.</p>
+                  <p className="text-muted-foreground text-lg mb-6">No manga found matching your criteria.</p>
                   <Button 
                     className="mt-4"
-                    onClick={() => setSearchParams({ limit: 20, offset: 0, order: "latestUploadedChapter", contentRating: ["safe", "suggestive"] })}
+                    onClick={() => {
+                      setSearchInput("");
+                      setSearchParams({ limit: 20, offset: 0, order: "latestUploadedChapter", contentRating: ["safe", "suggestive"] });
+                    }}
                     data-testid="clear-search"
                   >
-                    Clear Search
+                    Clear All Filters
                   </Button>
                 </div>
               ) : (
                 <div 
-                  className={`grid gap-6 mb-8 ${
+                  className={`grid gap-4 sm:gap-6 mb-8 ${
                     viewMode === "grid" 
-                      ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4"
-                      : "grid-cols-1 md:grid-cols-2"
+                      ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
+                      : "grid-cols-1 sm:grid-cols-2"
                   }`}
                   data-testid="results-grid"
                 >
@@ -353,25 +451,25 @@ export default function Home() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex justify-center items-center gap-1 flex-wrap" data-testid="pagination">
+                <div className="flex justify-center items-center gap-2 sm:gap-3 flex-wrap px-4 py-4" data-testid="pagination">
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     disabled={currentPage === 1}
                     onClick={() => handlePageChange(0)}
                     data-testid="button-first"
-                    className="min-w-[80px]"
+                    className="min-w-[60px] sm:min-w-[80px] text-sm"
                   >
                     First
                   </Button>
                   
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     disabled={currentPage === 1}
                     onClick={() => handlePageChange((currentPage - 2) * (searchParams.limit || 20))}
                     data-testid="button-prev"
-                    className="min-w-[80px]"
+                    className="min-w-[60px] sm:min-w-[80px] text-sm"
                   >
-                    Previous
+                    Prev
                   </Button>
 
                   {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
@@ -381,11 +479,11 @@ export default function Home() {
                     return (
                       <Button
                         key={page}
-                        variant={page === currentPage ? "default" : "outline"}
+                        variant={page === currentPage ? "default" : "secondary"}
                         disabled={page === currentPage}
                         onClick={() => handlePageChange((page - 1) * (searchParams.limit || 20))}
                         data-testid={`button-page-${page}`}
-                        className="min-w-[40px] h-10"
+                        className="min-w-[35px] sm:min-w-[40px] h-9 sm:h-10 text-sm"
                       >
                         {page}
                       </Button>
@@ -393,21 +491,21 @@ export default function Home() {
                   })}
 
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     disabled={currentPage === totalPages}
                     onClick={() => handlePageChange(currentPage * (searchParams.limit || 20))}
                     data-testid="button-next"
-                    className="min-w-[80px]"
+                    className="min-w-[60px] sm:min-w-[80px] text-sm"
                   >
                     Next
                   </Button>
                   
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     disabled={currentPage === totalPages}
                     onClick={() => handlePageChange((totalPages - 1) * (searchParams.limit || 20))}
                     data-testid="button-last"
-                    className="min-w-[80px]"
+                    className="min-w-[60px] sm:min-w-[80px] text-sm"
                   >
                     Last
                   </Button>
