@@ -8,6 +8,30 @@ interface AdSlotProps {
   className?: string;
 }
 
+// Default ad sizes for different slots (in pixels)
+const DEFAULT_AD_SIZES: Record<string, { width: number; height: number }> = {
+  homepage_top: { width: 728, height: 90 }, // Leaderboard
+  homepage_bottom: { width: 728, height: 90 }, // Leaderboard
+  browse_top: { width: 728, height: 90 }, // Leaderboard
+  manga_detail_top: { width: 300, height: 250 }, // Medium Rectangle
+  manga_detail_inline: { width: 336, height: 280 }, // Large Rectangle
+  reader_top: { width: 728, height: 90 }, // Leaderboard
+  reader_bottom: { width: 728, height: 90 }, // Leaderboard
+  blog_top: { width: 728, height: 90 }, // Leaderboard
+  blog_post_top: { width: 728, height: 90 }, // Leaderboard
+  blog_post_inline: { width: 300, height: 250 }, // Medium Rectangle
+};
+
+// Helper function to get effective dimensions for an ad
+function getAdDimensions(ad: Ad, position: string): { width: number; height: number } {
+  const defaultSize = DEFAULT_AD_SIZES[position] || { width: 300, height: 250 };
+  
+  return {
+    width: (ad.width && ad.width > 0) ? ad.width : defaultSize.width,
+    height: (ad.height && ad.height > 0) ? ad.height : defaultSize.height,
+  };
+}
+
 export function AdSlot({ position, className = "" }: AdSlotProps) {
   const adContainerRef = useRef<HTMLDivElement>(null);
 
@@ -126,30 +150,40 @@ export function AdSlot({ position, className = "" }: AdSlotProps) {
       {/* Custom Banners */}
       {banners && banners.length > 0 && (
         <div className="custom-banners space-y-4" data-testid={`banners-${position}`}>
-          {banners.map((banner) => (
-            <div
-              key={banner.id}
-              className="custom-banner cursor-pointer"
-              onClick={() => {
-                if (banner.bannerLink) {
-                  handleBannerClick(banner.id.toString());
-                  window.open(banner.bannerLink, '_blank', 'noopener,noreferrer');
-                }
-              }}
-              data-testid={`banner-${banner.id}`}
-            >
-              <img
-                src={banner.bannerImage}
-                alt={banner.networkName || 'Advertisement'}
-                className="w-full h-auto rounded-lg shadow-sm hover:shadow-md transition-shadow"
-                loading="lazy"
-                onError={(e) => {
-                  console.error('Error loading banner image:', banner.bannerImage);
-                  e.currentTarget.style.display = 'none';
+          {banners.map((banner) => {
+            const dimensions = getAdDimensions(banner, position);
+            return (
+              <div
+                key={banner.id}
+                className="custom-banner cursor-pointer"
+                onClick={() => {
+                  if (banner.bannerLink) {
+                    handleBannerClick(banner.id.toString());
+                    window.open(banner.bannerLink, '_blank', 'noopener,noreferrer');
+                  }
                 }}
-              />
-            </div>
-          ))}
+                data-testid={`banner-${banner.id}`}
+                style={{ width: dimensions.width, maxWidth: '100%' }}
+              >
+                <img
+                  src={banner.bannerImage}
+                  alt={banner.networkName || 'Advertisement'}
+                  className="rounded-lg shadow-sm hover:shadow-md transition-shadow"
+                  loading="lazy"
+                  style={{
+                    width: dimensions.width,
+                    height: dimensions.height,
+                    maxWidth: '100%',
+                    objectFit: 'cover'
+                  }}
+                  onError={(e) => {
+                    console.error('Error loading banner image:', banner.bannerImage);
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -159,6 +193,23 @@ export function AdSlot({ position, className = "" }: AdSlotProps) {
           ref={adContainerRef}
           className="ad-network-container"
           data-testid={`ad-network-${position}`}
+          style={{
+            width: adNetworks?.find(network => network.enabled && network.slots.includes(position))
+              ? (() => {
+                  const networkAd = adNetworks.find(network => network.enabled && network.slots.includes(position));
+                  const dimensions = networkAd ? getAdDimensions(networkAd, position) : DEFAULT_AD_SIZES[position] || { width: 300, height: 250 };
+                  return dimensions.width;
+                })()
+              : 'auto',
+            minHeight: adNetworks?.find(network => network.enabled && network.slots.includes(position))
+              ? (() => {
+                  const networkAd = adNetworks.find(network => network.enabled && network.slots.includes(position));
+                  const dimensions = networkAd ? getAdDimensions(networkAd, position) : DEFAULT_AD_SIZES[position] || { width: 300, height: 250 };
+                  return dimensions.height;
+                })()
+              : 'auto',
+            maxWidth: '100%'
+          }}
         />
       )}
     </div>
