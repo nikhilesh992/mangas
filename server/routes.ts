@@ -28,6 +28,81 @@ const upload = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
+  // Server-Sent Events setup for real-time settings updates
+  const sseClients = new Set<any>();
+
+  // Broadcast settings updates to all connected clients
+  const broadcastSettingsUpdate = async () => {
+    if (sseClients.size === 0) return;
+    
+    try {
+      const settings = await storage.getSettings();
+      const data = `data: ${JSON.stringify({ type: 'settings_update', settings })}\n\n`;
+      
+      console.log(`Broadcasting settings update to ${sseClients.size} clients`);
+      
+      for (const client of sseClients) {
+        try {
+          client.write(data);
+        } catch (err) {
+          console.error('Error writing to SSE client:', err);
+          sseClients.delete(client); // Remove dead connections
+        }
+      }
+    } catch (error) {
+      console.error('Error broadcasting settings update:', error);
+    }
+  };
+
+  app.get('/api/settings/stream', (req, res) => {
+    // Properly set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Cache-Control');
+    
+    // Send headers immediately
+    res.flushHeaders();
+
+    // Add client to active connections  
+    sseClients.add(res);
+    console.log(`SSE client connected. Total clients: ${sseClients.size}`);
+
+    // Send initial settings immediately
+    storage.getSettings().then(settings => {
+      const data = JSON.stringify({ type: 'settings', settings });
+      res.write(`data: ${data}\n\n`);
+      console.log('Sent initial settings to SSE client');
+    }).catch(err => {
+      console.error('Error sending initial settings:', err);
+    });
+
+    // Heartbeat to keep connection alive
+    const heartbeat = setInterval(() => {
+      try {
+        res.write(`: heartbeat\n\n`);
+      } catch (err) {
+        console.error('Error sending heartbeat:', err);
+        clearInterval(heartbeat);
+        sseClients.delete(res);
+      }
+    }, 15000);
+
+    // Clean up on disconnect
+    req.on('close', () => {
+      console.log(`SSE client disconnected. Remaining clients: ${sseClients.size - 1}`);
+      clearInterval(heartbeat);
+      sseClients.delete(res);
+    });
+
+    req.on('error', (err) => {
+      console.error('SSE client error:', err);
+      clearInterval(heartbeat);
+      sseClients.delete(res);
+    });
+  });
+
   app.post("/api/auth/register", async (req, res) => {
     try {
       const { username, email, password, role = 'user' } = insertUserSchema.parse(req.body);
@@ -896,77 +971,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Server-Sent Events for real-time setting updates
-  const sseClients = new Set<any>();
-
-  app.get('/api/settings/stream', (req, res) => {
-    // Properly set SSE headers
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', 'Cache-Control');
-    
-    // Send headers immediately
-    res.flushHeaders();
-
-    // Add client to active connections  
-    sseClients.add(res);
-    console.log(`SSE client connected. Total clients: ${sseClients.size}`);
-
-    // Send initial settings immediately
-    storage.getSettings().then(settings => {
-      const data = JSON.stringify({ type: 'settings', settings });
-      res.write(`data: ${data}\n\n`);
-      console.log('Sent initial settings to SSE client');
-    }).catch(err => {
-      console.error('Error sending initial settings:', err);
-    });
-
-    // Heartbeat to keep connection alive
-    const heartbeat = setInterval(() => {
-      try {
-        res.write(`: heartbeat\n\n`);
-      } catch (err) {
-        console.error('Error sending heartbeat:', err);
-        clearInterval(heartbeat);
-        sseClients.delete(res);
-      }
-    }, 15000);
-
-    // Clean up on disconnect
-    req.on('close', () => {
-      console.log(`SSE client disconnected. Remaining clients: ${sseClients.size - 1}`);
-      clearInterval(heartbeat);
-      sseClients.delete(res);
-    });
-
-    req.on('error', (err) => {
-      console.error('SSE client error:', err);
-      clearInterval(heartbeat);
-      sseClients.delete(res);
-    });
-  });
-
-  // Broadcast settings updates to all connected clients
-  const broadcastSettingsUpdate = async () => {
-    if (sseClients.size === 0) return;
-    
-    try {
-      const settings = await storage.getSettings();
-      const data = `data: ${JSON.stringify({ type: 'settings_update', settings })}\n\n`;
-      
-      for (const client of sseClients) {
-        try {
-          client.write(data);
-        } catch (err) {
-          sseClients.delete(client); // Remove dead connections
-        }
-      }
-    } catch (error) {
-      console.error('Error broadcasting settings update:', error);
-    }
-  };
 
   // Admin routes - Database Backup & Restore
   app.get("/api/admin/backup", authenticateToken, requireAdmin, async (req, res) => {
