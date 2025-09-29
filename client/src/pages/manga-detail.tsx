@@ -51,6 +51,16 @@ export default function MangaDetail() {
     enabled: !!manga?.genres?.length,
   });
 
+  // Suggested manga (popular/trending) for below comments
+  const { data: suggestedManga } = useQuery({
+    queryKey: ["/api/manga", "suggested"],
+    queryFn: () => mangaApi.getMangaList({ 
+      order: "followedCount", // Popular by follows
+      limit: 12,
+      contentRating: ["safe", "suggestive"]
+    }),
+  });
+
   // Track manga view when component mounts and manga data is available
   useEffect(() => {
     if (manga && id) {
@@ -502,6 +512,27 @@ export default function MangaDetail() {
 
           {/* Comments Section */}
           <MangaComments mangaId={id!} />
+
+          {/* Suggested Manga Section */}
+          {suggestedManga?.data && suggestedManga.data.length > 0 && (
+            <Card data-testid="suggested-manga-card">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center">
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  You Might Also Like
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4" data-testid="suggested-manga-grid">
+                  {suggestedManga.data.slice(0, 12).map((suggestedItem: any) => (
+                    <MangaCard
+                      key={suggestedItem.id}
+                      manga={suggestedItem}
+                      showFavoriteButton={isAuthenticated}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
