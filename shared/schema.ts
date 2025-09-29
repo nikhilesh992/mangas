@@ -85,11 +85,63 @@ export const readingProgress = pgTable("reading_progress", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Analytics Tables
+export const pageViews = pgTable("page_views", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id), // nullable for anonymous users
+  sessionId: text("session_id").notNull(),
+  path: text("path").notNull(),
+  userAgent: text("user_agent"),
+  referrer: text("referrer"),
+  ipAddress: text("ip_address"),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+export const adClicks = pgTable("ad_clicks", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  adId: integer("ad_id").references(() => ads.id).notNull(),
+  userId: varchar("user_id").references(() => users.id), // nullable for anonymous users
+  sessionId: text("session_id").notNull(),
+  position: text("position").notNull(), // ad slot position
+  path: text("path").notNull(), // page where ad was clicked
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+export const userSessions = pgTable("user_sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  sessionId: text("session_id").notNull().unique(),
+  userId: varchar("user_id").references(() => users.id), // nullable for anonymous users
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  firstSeen: timestamp("first_seen").defaultNow(),
+  lastSeen: timestamp("last_seen").defaultNow(),
+  pageCount: integer("page_count").default(1),
+});
+
+// SEO Management
+export const seoSettings = pgTable("seo_settings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  path: text("path").notNull().unique(), // URL path or "global" for site-wide
+  title: text("title"),
+  description: text("description"),
+  keywords: text("keywords").array().default([]),
+  ogTitle: text("og_title"),
+  ogDescription: text("og_description"),
+  ogImage: text("og_image"),
+  canonicalUrl: text("canonical_url"),
+  noIndex: boolean("no_index").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   blogPosts: many(blogPosts),
   favorites: many(userFavorites),
   readingProgress: many(readingProgress),
+  pageViews: many(pageViews),
+  adClicks: many(adClicks),
+  sessions: many(userSessions),
 }));
 
 export const blogPostsRelations = relations(blogPosts, ({ one }) => ({
@@ -109,6 +161,31 @@ export const userFavoritesRelations = relations(userFavorites, ({ one }) => ({
 export const readingProgressRelations = relations(readingProgress, ({ one }) => ({
   user: one(users, {
     fields: [readingProgress.userId],
+    references: [users.id],
+  }),
+}));
+
+export const pageViewsRelations = relations(pageViews, ({ one }) => ({
+  user: one(users, {
+    fields: [pageViews.userId],
+    references: [users.id],
+  }),
+}));
+
+export const adClicksRelations = relations(adClicks, ({ one }) => ({
+  user: one(users, {
+    fields: [adClicks.userId],
+    references: [users.id],
+  }),
+  ad: one(ads, {
+    fields: [adClicks.adId],
+    references: [ads.id],
+  }),
+}));
+
+export const userSessionsRelations = relations(userSessions, ({ one }) => ({
+  user: one(users, {
+    fields: [userSessions.userId],
     references: [users.id],
   }),
 }));
@@ -153,6 +230,28 @@ export const insertReadingProgressSchema = createInsertSchema(readingProgress).o
   updatedAt: true,
 });
 
+export const insertPageViewSchema = createInsertSchema(pageViews).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertAdClickSchema = createInsertSchema(adClicks).omit({
+  id: true,
+  timestamp: true,
+});
+
+export const insertUserSessionSchema = createInsertSchema(userSessions).omit({
+  id: true,
+  firstSeen: true,
+  lastSeen: true,
+});
+
+export const insertSeoSettingSchema = createInsertSchema(seoSettings).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -168,3 +267,11 @@ export type UserFavorite = typeof userFavorites.$inferSelect;
 export type InsertUserFavorite = z.infer<typeof insertUserFavoriteSchema>;
 export type ReadingProgress = typeof readingProgress.$inferSelect;
 export type InsertReadingProgress = z.infer<typeof insertReadingProgressSchema>;
+export type PageView = typeof pageViews.$inferSelect;
+export type InsertPageView = z.infer<typeof insertPageViewSchema>;
+export type AdClick = typeof adClicks.$inferSelect;
+export type InsertAdClick = z.infer<typeof insertAdClickSchema>;
+export type UserSession = typeof userSessions.$inferSelect;
+export type InsertUserSession = z.infer<typeof insertUserSessionSchema>;
+export type SeoSetting = typeof seoSettings.$inferSelect;
+export type InsertSeoSetting = z.infer<typeof insertSeoSettingSchema>;

@@ -11,12 +11,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSiteSettings } from "@/contexts/site-settings-context";
 
 export function Header() {
   const [location, navigate] = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isAuthenticated, isAdmin, user, logout } = useAuth();
   const isMobile = useIsMobile();
+  const { getSetting } = useSiteSettings();
   
   // Show search on home pages
   const isHomePage = location === "/" || location === "/home";
@@ -36,9 +38,19 @@ export function Header() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-8">
             <Link href="/" data-testid="logo-link">
-              <h1 className="text-2xl font-bold gradient-hero bg-clip-text text-transparent" data-testid="site-logo">
-                MangaVerse
-              </h1>
+              <div className="flex items-center space-x-2">
+                {getSetting('header_logo') && (
+                  <img 
+                    src={getSetting('header_logo')} 
+                    alt={getSetting('site_name', 'MangaVerse')}
+                    className="h-8 w-auto"
+                    data-testid="header-logo-image"
+                  />
+                )}
+                <h1 className="text-2xl font-bold gradient-hero bg-clip-text text-transparent" data-testid="site-logo">
+                  {getSetting('site_name', 'MangaVerse')}
+                </h1>
+              </div>
             </Link>
             <nav className="hidden md:flex space-x-6" data-testid="main-navigation">
               <Link 

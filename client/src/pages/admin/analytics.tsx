@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { analyticsApi } from "@/lib/api";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { analyticsApi, adminApi } from "@/lib/api";
 import type { AnalyticsFilters } from "@/lib/types";
 
 export default function AdminAnalytics() {
@@ -20,6 +21,8 @@ export default function AdminAnalytics() {
     from: '',
     to: ''
   });
+
+  const [timeRange, setTimeRange] = useState('7d');
 
   const { data: topManga, isLoading: topMangaLoading } = useQuery({
     queryKey: ["/api/analytics/top-manga", dateRange.from, dateRange.to],
@@ -34,6 +37,17 @@ export default function AdminAnalytics() {
   const { data: mangaAnalytics, isLoading: analyticsLoading } = useQuery({
     queryKey: ["/api/analytics/manga", filters],
     queryFn: () => analyticsApi.getMangaAnalytics(filters),
+  });
+
+  // New website analytics queries
+  const { data: websiteAnalytics, isLoading: websiteLoading } = useQuery({
+    queryKey: ['/api/admin/analytics/overview', timeRange],
+    queryFn: () => adminApi.getAnalyticsOverview(timeRange),
+  });
+
+  const { data: realtimeStats } = useQuery({
+    queryKey: ['/api/admin/stats', timeRange],
+    queryFn: () => adminApi.getStats(timeRange),
   });
 
   const handleDateRangeChange = (field: 'from' | 'to', value: string) => {
@@ -67,17 +81,203 @@ export default function AdminAnalytics() {
     );
   }
 
+  const timeRangeOptions = [
+    { value: '1d', label: 'Last 24 Hours' },
+    { value: '7d', label: 'Last 7 Days' },
+    { value: '30d', label: 'Last 30 Days' },
+  ];
+
+  const getTimeRangeLabel = (range: string) => {
+    return timeRangeOptions.find(opt => opt.value === range)?.label || 'Last 7 Days';
+  };
+
   return (
     <div className="space-y-8" data-testid="analytics-dashboard">
       <div>
         <h1 className="text-3xl font-bold text-foreground mb-2">Analytics Dashboard</h1>
         <p className="text-muted-foreground">
-          Track manga views, impressions, and user engagement across your platform.
+          Track website traffic, user engagement, and manga analytics across your platform.
         </p>
       </div>
 
-      {/* Overview Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <Tabs defaultValue="website" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="website">Website Analytics</TabsTrigger>
+          <TabsTrigger value="manga">Manga Analytics</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="website" className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-bold text-foreground">Website Traffic & Performance</h2>
+            <div className="flex gap-4 items-center">
+              <Select value={timeRange} onValueChange={setTimeRange}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeRangeOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Website Analytics Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Page Views</CardTitle>
+                <Eye className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {websiteAnalytics?.pageViews?.totalViews?.toLocaleString() || '0'}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {getTimeRangeLabel(timeRange)}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Unique Visitors</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {websiteAnalytics?.pageViews?.uniqueVisitors?.toLocaleString() || '0'}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {getTimeRangeLabel(timeRange)}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Ad Clicks</CardTitle>
+                <MousePointer className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {websiteAnalytics?.adClicks?.totalClicks?.toLocaleString() || '0'}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {getTimeRangeLabel(timeRange)}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Avg. Pages/Session</CardTitle>
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {websiteAnalytics?.sessions?.avgPageViews?.toFixed(1) || '0.0'}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {websiteAnalytics?.sessions?.totalSessions || 0} sessions
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Top Pages and Ad Performance */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Top Performing Pages
+                </CardTitle>
+                <CardDescription>
+                  Most visited pages on your website
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {websiteAnalytics?.topPages?.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">
+                      No page view data available for the selected time range.
+                    </p>
+                  ) : (
+                    websiteAnalytics?.topPages?.map((page: any, index: number) => (
+                      <div key={page.path} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <Badge variant="secondary">
+                            #{index + 1}
+                          </Badge>
+                          <span className="font-medium">{page.path}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <TrendingUp className="h-4 w-4 text-green-500" />
+                          <span className="text-green-600 font-bold">{page.views.toLocaleString()}</span>
+                          <span className="text-muted-foreground text-sm">views</span>
+                        </div>
+                      </div>
+                    )) || (
+                      <p className="text-muted-foreground text-center py-8">
+                        Loading page analytics...
+                      </p>
+                    )
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MousePointer className="h-5 w-5" />
+                  Ad Network Performance
+                </CardTitle>
+                <CardDescription>
+                  Click performance by ad network
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {websiteAnalytics?.adClicks?.clicksByAd?.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">
+                      No ad click data available for the selected time range.
+                    </p>
+                  ) : (
+                    websiteAnalytics?.adClicks?.clicksByAd?.map((ad: any, index: number) => (
+                      <div key={ad.adId} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <Badge variant="secondary">
+                            #{index + 1}
+                          </Badge>
+                          <span className="font-medium">{ad.networkName || `Ad #${ad.adId}`}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <MousePointer className="h-4 w-4 text-yellow-500" />
+                          <span className="text-yellow-600 font-bold">{ad.clicks.toLocaleString()}</span>
+                          <span className="text-muted-foreground text-sm">clicks</span>
+                        </div>
+                      </div>
+                    )) || (
+                      <p className="text-muted-foreground text-center py-8">
+                        Loading ad analytics...
+                      </p>
+                    )
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="manga" className="space-y-6">
+
+          {/* Overview Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Views</CardTitle>
@@ -265,6 +465,8 @@ export default function AdminAnalytics() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

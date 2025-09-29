@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
+import { PageTracker } from "@/hooks/use-page-tracking";
+import { SiteSettingsProvider } from "@/contexts/site-settings-context";
 
 // Pages
 import Home from "@/pages/home";
@@ -27,6 +29,7 @@ import AdminAds from "@/pages/admin/ads";
 import AdminBlog from "@/pages/admin/blog-admin";
 import AdminUsers from "@/pages/admin/users";
 import AdminSettings from "@/pages/admin/settings";
+import AdminSiteSettings from "@/pages/admin/site-settings";
 import AdminLogin from "@/pages/admin/login";
 
 // Auth Pages
@@ -36,6 +39,7 @@ import AuthRegister from "@/pages/auth/register";
 function MainRouter() {
   return (
     <div className="min-h-screen flex flex-col">
+      <PageTracker />
       <Header />
       <main className="flex-1">
         <Switch>
@@ -89,6 +93,11 @@ function MainRouter() {
               <AdminSettings />
             </AdminLayout>
           )} />
+          <Route path="/admin/site-settings" component={() => (
+            <AdminLayout>
+              <AdminSiteSettings />
+            </AdminLayout>
+          )} />
           <Route path="/admin/login" component={AdminLogin} />
           
           <Route component={NotFound} />
@@ -103,10 +112,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <MainRouter />
-        </TooltipProvider>
+        <SiteSettingsProvider>
+          <TooltipProvider>
+            <Toaster />
+            <MainRouter />
+          </TooltipProvider>
+        </SiteSettingsProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

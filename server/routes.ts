@@ -769,6 +769,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { value } = req.body;
       
       const setting = await storage.updateSiteSetting(key, value);
+      
+      // Broadcast update to all connected SSE clients for real-time updates
+      broadcastSettingsUpdate();
+      console.log(`Broadcasting settings update for key: ${key}`);
+      
       res.json(setting);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
@@ -788,14 +793,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin dashboard stats
   app.get("/api/admin/stats", authenticateToken, requireAdmin, async (req, res) => {
     try {
-      // In a real app, you'd calculate actual stats from the database
+      const timeRange = req.query.timeRange as string || '7d';
+      
+      // Get real analytics data
+      const [pageViews, adClicks, sessions, topPages, blogPosts] = await Promise.all([
+        storage.getPageViewsStats(timeRange),
+        storage.getAdClicksStats(timeRange),
+        storage.getSessionStats(timeRange),
+        storage.getTopPages(5),
+        storage.getBlogPosts(1000), // Get all blog posts to count them
+      ]);
+
       const stats = {
-        totalViews: 1234567,
-        activeUsers: 45678,
-        adRevenue: 2345,
-        blogPosts: 156,
-        totalManga: 9876,
-        totalChapters: 123456,
+        totalViews: pageViews.totalViews || 0,
+        uniqueVisitors: pageViews.uniqueVisitors || 0,
+        totalSessions: sessions.totalSessions || 0,
+        avgPageViews: sessions.avgPageViews || 0,
+        totalAdClicks: adClicks.totalClicks || 0,
+        blogPosts: blogPosts.length || 0,
+        topPages: topPages || [],
+        timeRange
       };
       
       res.json(stats);
@@ -803,6 +820,153 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: error.message });
     }
   });
+
+  // Public settings endpoint (no auth required for real-time updates)
+  app.get('/api/settings', async (req, res) => {
+    try {
+      const settings = await storage.getSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error('Error getting public settings:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Analytics overview endpoint for admin dashboard
+  app.get('/api/admin/analytics/overview', authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const timeRange = req.query.timeRange as string || '7d';
+      
+      // Get comprehensive analytics data
+      const [pageViews, adClicks, sessions, topPages] = await Promise.all([
+        storage.getPageViewsStats(timeRange),
+        storage.getAdClicksStats(timeRange),
+        storage.getSessionStats(timeRange),
+        storage.getTopPages(10),
+      ]);
+
+      const overview = {
+        pageViews: {
+          totalViews: pageViews.totalViews || 0,
+          uniqueVisitors: pageViews.uniqueVisitors || 0,
+          timeRange
+        },
+        adClicks: {
+          totalClicks: adClicks.totalClicks || 0,
+          clicksByAd: adClicks.clicksByAd || [],
+          timeRange
+        },
+        sessions: {
+          totalSessions: sessions.totalSessions || 0,
+          avgPageViews: sessions.avgPageViews || 0,
+          timeRange
+        },
+        topPages: topPages || [],
+        timeRange
+      };
+      
+      res.json(overview);
+    } catch (error: any) {
+      console.error('Error getting analytics overview:', error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Ad click tracking endpoint (public, used by frontend)
+  app.post('/api/analytics/adclick', async (req, res) => {
+    try {
+      const { adId, sessionId, position, path } = req.body;
+      
+      if (!adId || !sessionId || !position || !path) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+
+      const result = await storage.trackAdClick({
+        adId: parseInt(adId),
+        sessionId,
+        position,
+        path,
+        ipAddress: getClientIP(req),
+      });
+
+      res.status(201).json({ success: true, result });
+    } catch (error) {
+      console.error('Error tracking ad click:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Server-Sent Events for real-time setting updates
+  const sseClients = new Set<any>();
+
+  app.get('/api/settings/stream', (req, res) => {
+    // Properly set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Cache-Control');
+    
+    // Send headers immediately
+    res.flushHeaders();
+
+    // Add client to active connections  
+    sseClients.add(res);
+    console.log(`SSE client connected. Total clients: ${sseClients.size}`);
+
+    // Send initial settings immediately
+    storage.getSettings().then(settings => {
+      const data = JSON.stringify({ type: 'settings', settings });
+      res.write(`data: ${data}\n\n`);
+      console.log('Sent initial settings to SSE client');
+    }).catch(err => {
+      console.error('Error sending initial settings:', err);
+    });
+
+    // Heartbeat to keep connection alive
+    const heartbeat = setInterval(() => {
+      try {
+        res.write(`: heartbeat\n\n`);
+      } catch (err) {
+        console.error('Error sending heartbeat:', err);
+        clearInterval(heartbeat);
+        sseClients.delete(res);
+      }
+    }, 15000);
+
+    // Clean up on disconnect
+    req.on('close', () => {
+      console.log(`SSE client disconnected. Remaining clients: ${sseClients.size - 1}`);
+      clearInterval(heartbeat);
+      sseClients.delete(res);
+    });
+
+    req.on('error', (err) => {
+      console.error('SSE client error:', err);
+      clearInterval(heartbeat);
+      sseClients.delete(res);
+    });
+  });
+
+  // Broadcast settings updates to all connected clients
+  const broadcastSettingsUpdate = async () => {
+    if (sseClients.size === 0) return;
+    
+    try {
+      const settings = await storage.getSettings();
+      const data = `data: ${JSON.stringify({ type: 'settings_update', settings })}\n\n`;
+      
+      for (const client of sseClients) {
+        try {
+          client.write(data);
+        } catch (err) {
+          sseClients.delete(client); // Remove dead connections
+        }
+      }
+    } catch (error) {
+      console.error('Error broadcasting settings update:', error);
+    }
+  };
 
   // Admin routes - Database Backup & Restore
   app.get("/api/admin/backup", authenticateToken, requireAdmin, async (req, res) => {
@@ -952,6 +1116,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.send(minimalSvg);
     }
   }
+
+  // Analytics routes
+  app.post("/api/analytics/pageview", optionalAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { path, sessionId, userAgent, referrer, ipAddress } = req.body;
+      const userId = req.user?.userId || null;
+
+      await storage.trackPageView({
+        userId,
+        sessionId,
+        path,
+        userAgent,
+        referrer,
+        ipAddress,
+      });
+
+      // Update session
+      await storage.createOrUpdateSession({
+        sessionId,
+        userId,
+        userAgent,
+        ipAddress,
+      });
+
+      res.status(201).json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/analytics/adclick", optionalAuth, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { adId, sessionId, position, path } = req.body;
+      const userId = req.user?.userId || null;
+
+      await storage.trackAdClick({
+        adId,
+        userId,
+        sessionId,
+        position,
+        path,
+      });
+
+      res.status(201).json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Admin analytics routes
+  app.get("/api/admin/analytics/overview", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const timeRange = req.query.timeRange as string || '7d';
+      
+      const [pageViews, adClicks, sessions, topPages] = await Promise.all([
+        storage.getPageViewsStats(timeRange),
+        storage.getAdClicksStats(timeRange),
+        storage.getSessionStats(timeRange),
+        storage.getTopPages(10)
+      ]);
+
+      res.json({
+        pageViews,
+        adClicks,
+        sessions,
+        topPages,
+        timeRange
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // SEO Settings routes
+  app.get("/api/seo", async (req, res) => {
+    try {
+      const path = req.query.path as string || 'global';
+      const setting = await storage.getSeoSetting(path);
+      res.json(setting || {});
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/admin/seo", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const settings = await storage.getSeoSettings();
+      res.json(settings);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/admin/seo", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const setting = await storage.createSeoSetting(req.body);
+      res.status(201).json(setting);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.put("/api/admin/seo/:path", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const { path } = req.params;
+      const setting = await storage.updateSeoSetting(decodeURIComponent(path), req.body);
+      res.json(setting);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.delete("/api/admin/seo/:path", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const { path } = req.params;
+      await storage.deleteSeoSetting(decodeURIComponent(path));
+      res.status(204).send();
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

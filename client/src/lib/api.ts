@@ -162,8 +162,15 @@ export const adsApi = {
 // Admin API
 export const adminApi = {
   // Dashboard
-  getStats: async (): Promise<DashboardStats> => {
-    const response = await apiRequest("GET", "/api/admin/stats");
+  getStats: async (timeRange?: string): Promise<DashboardStats> => {
+    const url = timeRange ? `/api/admin/stats?timeRange=${timeRange}` : "/api/admin/stats";
+    const response = await apiRequest("GET", url);
+    return response.json();
+  },
+
+  // Analytics Overview
+  getAnalyticsOverview: async (timeRange: string = '7d') => {
+    const response = await apiRequest("GET", `/api/admin/analytics/overview?timeRange=${timeRange}`);
     return response.json();
   },
 
@@ -283,6 +290,26 @@ export const adminApi = {
   updateSetting: async (key: string, value: string) => {
     const response = await apiRequest("PUT", `/api/admin/settings/${key}`, { value });
     return response.json();
+  },
+
+  // SEO Settings
+  getSeoSettings: async () => {
+    const response = await apiRequest("GET", "/api/admin/seo");
+    return response.json();
+  },
+
+  createSeoSetting: async (setting: any) => {
+    const response = await apiRequest("POST", "/api/admin/seo", setting);
+    return response.json();
+  },
+
+  updateSeoSetting: async (path: string, updates: any) => {
+    const response = await apiRequest("PUT", `/api/admin/seo/${encodeURIComponent(path)}`, updates);
+    return response.json();
+  },
+
+  deleteSeoSetting: async (path: string) => {
+    await apiRequest("DELETE", `/api/admin/seo/${encodeURIComponent(path)}`);
   },
 };
 

@@ -9,7 +9,8 @@ import {
   Settings, 
   Menu,
   X,
-  TrendingUp
+  TrendingUp,
+  Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -54,6 +55,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     { name: "Blog Posts", href: "/admin/blog", icon: FileText, testId: "admin-nav-blog" },
     { name: "User Management", href: "/admin/users", icon: Users, testId: "admin-nav-users" },
     { name: "Settings", href: "/admin/settings", icon: Settings, testId: "admin-nav-settings" },
+    { name: "Site Settings", href: "/admin/site-settings", icon: Globe, testId: "admin-nav-site-settings" },
   ];
 
   const Sidebar = () => (

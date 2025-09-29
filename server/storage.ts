@@ -1,12 +1,17 @@
 import {
   users, blogPosts, apiConfigurations, ads,
   siteSettings, userFavorites, readingProgress,
+  pageViews, adClicks, userSessions, seoSettings,
   type User, type InsertUser, type BlogPost, type InsertBlogPost,
   type ApiConfiguration, type InsertApiConfiguration,
   type Ad, type InsertAd,
   type SiteSetting, type InsertSiteSetting,
   type UserFavorite, type InsertUserFavorite,
-  type ReadingProgress, type InsertReadingProgress
+  type ReadingProgress, type InsertReadingProgress,
+  type PageView, type InsertPageView,
+  type AdClick, type InsertAdClick,
+  type UserSession, type InsertUserSession,
+  type SeoSetting, type InsertSeoSetting
 } from "@shared/schema";
 import { db, memoryUsers, memoryAds } from "./db";
 import { eq, desc, like, and, or, sql, isNull } from "drizzle-orm";
@@ -63,6 +68,22 @@ export interface IStorage {
   getReadingProgress(userId: string, mangaId: string): Promise<ReadingProgress | undefined>;
   updateReadingProgress(progress: InsertReadingProgress): Promise<ReadingProgress>;
   deleteReadingProgress(userId: string, mangaId: string): Promise<void>;
+
+  // Analytics
+  trackPageView(data: InsertPageView): Promise<PageView>;
+  trackAdClick(data: InsertAdClick): Promise<AdClick>;
+  createOrUpdateSession(data: InsertUserSession): Promise<UserSession>;
+  getPageViewsStats(timeRange?: string): Promise<any>;
+  getAdClicksStats(timeRange?: string): Promise<any>;
+  getSessionStats(timeRange?: string): Promise<any>;
+  getTopPages(limit?: number): Promise<any>;
+
+  // SEO Settings
+  getSeoSettings(): Promise<SeoSetting[]>;
+  getSeoSetting(path: string): Promise<SeoSetting | undefined>;
+  createSeoSetting(setting: InsertSeoSetting): Promise<SeoSetting>;
+  updateSeoSetting(path: string, updates: Partial<InsertSeoSetting>): Promise<SeoSetting>;
+  deleteSeoSetting(path: string): Promise<void>;
 
   // Database Backup & Restore
   createBackup(): Promise<any>;
@@ -520,6 +541,212 @@ export class DatabaseStorage implements IStorage {
     } catch (error: any) {
       throw new Error(`Restore failed: ${error.message}`);
     }
+  }
+
+  // Analytics Implementation
+  async trackPageView(data: InsertPageView): Promise<PageView> {
+    if (!db) {
+      // For memory storage, just return a mock entry
+      return {
+        id: 'mock-' + Date.now(),
+        ...data,
+        timestamp: new Date(),
+      } as PageView;
+    }
+    const [pageView] = await db.insert(pageViews).values(data).returning();
+    return pageView;
+  }
+
+  async trackAdClick(data: InsertAdClick): Promise<AdClick> {
+    if (!db) {
+      return {
+        id: 'mock-' + Date.now(),
+        ...data,
+        timestamp: new Date(),
+      } as AdClick;
+    }
+    const [adClick] = await db.insert(adClicks).values(data).returning();
+    return adClick;
+  }
+
+  async createOrUpdateSession(data: InsertUserSession): Promise<UserSession> {
+    if (!db) {
+      return {
+        id: 'mock-' + Date.now(),
+        ...data,
+        firstSeen: new Date(),
+        lastSeen: new Date(),
+      } as UserSession;
+    }
+    
+    // Try to find existing session
+    const [existingSession] = await db.select().from(userSessions)
+      .where(eq(userSessions.sessionId, data.sessionId));
+    
+    if (existingSession) {
+      // Update existing session
+      const [updatedSession] = await db.update(userSessions)
+        .set({ 
+          lastSeen: new Date(),
+          pageCount: sql`${userSessions.pageCount} + 1`
+        })
+        .where(eq(userSessions.sessionId, data.sessionId))
+        .returning();
+      return updatedSession;
+    } else {
+      // Create new session
+      const [newSession] = await db.insert(userSessions).values(data).returning();
+      return newSession;
+    }
+  }
+
+  async getPageViewsStats(timeRange: string = '7d'): Promise<any> {
+    if (!db) {
+      return { totalViews: 0, uniqueVisitors: 0, topPages: [] };
+    }
+
+    const timeCondition = this.getTimeCondition(timeRange);
+    
+    const totalViews = await db.select({ count: sql<number>`count(*)` })
+      .from(pageViews)
+      .where(timeCondition);
+
+    const uniqueVisitors = await db.select({ count: sql<number>`count(distinct ${pageViews.sessionId})` })
+      .from(pageViews)
+      .where(timeCondition);
+
+    return {
+      totalViews: totalViews[0].count,
+      uniqueVisitors: uniqueVisitors[0].count,
+      timeRange
+    };
+  }
+
+  async getAdClicksStats(timeRange: string = '7d'): Promise<any> {
+    if (!db) {
+      return { totalClicks: 0, clicksByAd: [] };
+    }
+
+    const timeCondition = sql`${adClicks.timestamp} >= ${this.getStartDate(timeRange)}`;
+    
+    const totalClicks = await db.select({ count: sql<number>`count(*)` })
+      .from(adClicks)
+      .where(timeCondition);
+
+    const clicksByAd = await db.select({
+      adId: adClicks.adId,
+      clicks: sql<number>`count(*)`,
+      networkName: ads.networkName
+    })
+      .from(adClicks)
+      .leftJoin(ads, eq(adClicks.adId, ads.id))
+      .where(timeCondition)
+      .groupBy(adClicks.adId, ads.networkName);
+
+    return {
+      totalClicks: totalClicks[0].count,
+      clicksByAd,
+      timeRange
+    };
+  }
+
+  async getSessionStats(timeRange: string = '7d'): Promise<any> {
+    if (!db) {
+      return { totalSessions: 0, avgSessionLength: 0 };
+    }
+
+    const timeCondition = sql`${userSessions.firstSeen} >= ${this.getStartDate(timeRange)}`;
+    
+    const sessions = await db.select()
+      .from(userSessions)
+      .where(timeCondition);
+
+    const totalSessions = sessions.length;
+    const avgPageViews = sessions.reduce((sum: number, s: UserSession) => sum + (s.pageCount || 1), 0) / totalSessions || 0;
+
+    return {
+      totalSessions,
+      avgPageViews: Math.round(avgPageViews * 100) / 100,
+      timeRange
+    };
+  }
+
+  async getTopPages(limit: number = 10): Promise<any> {
+    if (!db) {
+      return [];
+    }
+
+    return await db.select({
+      path: pageViews.path,
+      views: sql<number>`count(*)`
+    })
+      .from(pageViews)
+      .groupBy(pageViews.path)
+      .orderBy(desc(sql`count(*)`))
+      .limit(limit);
+  }
+
+  private getTimeCondition(timeRange: string) {
+    const startDate = this.getStartDate(timeRange);
+    return sql`${pageViews.timestamp} >= ${startDate}`;
+  }
+
+  private getStartDate(timeRange: string): Date {
+    const now = new Date();
+
+    switch (timeRange) {
+      case '1d':
+        return new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      case '7d':
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      case '30d':
+        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      default:
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    }
+  }
+
+  // SEO Settings Implementation
+  async getSeoSettings(): Promise<SeoSetting[]> {
+    if (!db) {
+      return [];
+    }
+    return await db.select().from(seoSettings).orderBy(seoSettings.path);
+  }
+
+  async getSeoSetting(path: string): Promise<SeoSetting | undefined> {
+    if (!db) {
+      return undefined;
+    }
+    const [setting] = await db.select().from(seoSettings)
+      .where(eq(seoSettings.path, path));
+    return setting || undefined;
+  }
+
+  async createSeoSetting(setting: InsertSeoSetting): Promise<SeoSetting> {
+    if (!db) {
+      throw new Error('SEO settings not available with memory storage');
+    }
+    const [newSetting] = await db.insert(seoSettings).values(setting).returning();
+    return newSetting;
+  }
+
+  async updateSeoSetting(path: string, updates: Partial<InsertSeoSetting>): Promise<SeoSetting> {
+    if (!db) {
+      throw new Error('SEO settings not available with memory storage');
+    }
+    const [setting] = await db.update(seoSettings)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(seoSettings.path, path))
+      .returning();
+    return setting;
+  }
+
+  async deleteSeoSetting(path: string): Promise<void> {
+    if (!db) {
+      throw new Error('SEO settings not available with memory storage');
+    }
+    await db.delete(seoSettings).where(eq(seoSettings.path, path));
   }
 }
 

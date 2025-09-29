@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { adsApi } from "@/lib/api";
 import type { Ad } from "@/lib/types";
+import { analytics } from "@/lib/analytics";
 
 interface AdSlotProps {
   position: string;
@@ -159,6 +160,8 @@ export function AdSlot({ position, className = "" }: AdSlotProps) {
                 onClick={() => {
                   if (banner.bannerLink) {
                     handleBannerClick(banner.id.toString());
+                    // Track ad click for analytics
+                    analytics.trackAdClick(banner.id, position, window.location.pathname);
                     window.open(banner.bannerLink, '_blank', 'noopener,noreferrer');
                   }
                 }}
