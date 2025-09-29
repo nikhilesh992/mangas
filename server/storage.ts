@@ -1,6 +1,6 @@
 import {
   users, blogPosts, apiConfigurations, ads,
-  siteSettings, userFavorites, readingProgress,
+  siteSettings, userFavorites, readingProgress, mangaComments,
   pageViews, adClicks, userSessions, seoSettings,
   type User, type InsertUser, type BlogPost, type InsertBlogPost,
   type ApiConfiguration, type InsertApiConfiguration,
@@ -8,6 +8,7 @@ import {
   type SiteSetting, type InsertSiteSetting,
   type UserFavorite, type InsertUserFavorite,
   type ReadingProgress, type InsertReadingProgress,
+  type MangaComment, type InsertMangaComment,
   type PageView, type InsertPageView,
   type AdClick, type InsertAdClick,
   type UserSession, type InsertUserSession,
@@ -68,6 +69,11 @@ export interface IStorage {
   getReadingProgress(userId: string, mangaId: string): Promise<ReadingProgress | undefined>;
   updateReadingProgress(progress: InsertReadingProgress): Promise<ReadingProgress>;
   deleteReadingProgress(userId: string, mangaId: string): Promise<void>;
+
+  // Manga Comments
+  getMangaComments(mangaId: string): Promise<MangaComment[]>;
+  createMangaComment(comment: InsertMangaComment): Promise<MangaComment>;
+  deleteMangaComment(id: string, userId: string): Promise<void>;
 
   // Analytics
   trackPageView(data: InsertPageView): Promise<PageView>;
@@ -479,6 +485,42 @@ export class DatabaseStorage implements IStorage {
   async deleteReadingProgress(userId: string, mangaId: string): Promise<void> {
     await db.delete(readingProgress)
       .where(and(eq(readingProgress.userId, userId), eq(readingProgress.mangaId, mangaId)));
+  }
+
+  // Manga Comments
+  async getMangaComments(mangaId: string): Promise<MangaComment[]> {
+    if (!db) {
+      // Fallback to empty array when database is not available
+      return [];
+    }
+    return await db.select({
+      id: mangaComments.id,
+      userId: mangaComments.userId,
+      mangaId: mangaComments.mangaId,
+      content: mangaComments.content,
+      createdAt: mangaComments.createdAt,
+      updatedAt: mangaComments.updatedAt,
+      username: users.username,
+    }).from(mangaComments)
+      .leftJoin(users, eq(mangaComments.userId, users.id))
+      .where(eq(mangaComments.mangaId, mangaId))
+      .orderBy(desc(mangaComments.createdAt));
+  }
+
+  async createMangaComment(comment: InsertMangaComment): Promise<MangaComment> {
+    if (!db) {
+      throw new Error('Comment creation not available with memory storage');
+    }
+    const [newComment] = await db.insert(mangaComments).values(comment).returning();
+    return newComment;
+  }
+
+  async deleteMangaComment(id: string, userId: string): Promise<void> {
+    if (!db) {
+      throw new Error('Comment deletion not available with memory storage');
+    }
+    await db.delete(mangaComments)
+      .where(and(eq(mangaComments.id, id), eq(mangaComments.userId, userId)));
   }
 
   // Database Backup & Restore

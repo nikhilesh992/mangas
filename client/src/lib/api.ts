@@ -5,6 +5,7 @@ import type {
   Ad, AdNetwork, CustomBanner, SiteSetting, DashboardStats,
   AnalyticsEvent, AnalyticsFilters
 } from "./types";
+import type { MangaComment, InsertMangaComment } from "@shared/schema";
 
 // Auth API
 export const authApi = {
@@ -354,5 +355,22 @@ export const analyticsApi = {
   getDashboardStats: async () => {
     const response = await apiRequest("GET", "/api/analytics/dashboard");
     return response.json();
+  }
+};
+
+// Manga Comments API
+export const commentsApi = {
+  getMangaComments: async (mangaId: string): Promise<MangaComment[]> => {
+    const response = await apiRequest("GET", `/api/manga/${mangaId}/comments`);
+    return response.json();
+  },
+
+  createMangaComment: async (mangaId: string, comment: { content: string }): Promise<MangaComment> => {
+    const response = await apiRequest("POST", `/api/manga/${mangaId}/comments`, comment);
+    return response.json();
+  },
+
+  deleteMangaComment: async (mangaId: string, commentId: string): Promise<void> => {
+    await apiRequest("DELETE", `/api/manga/${mangaId}/comments/${commentId}`);
   }
 };

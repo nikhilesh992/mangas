@@ -8,7 +8,7 @@ import { authenticateToken, requireAdmin, optionalAuth, type AuthenticatedReques
 import { 
   insertUserSchema, insertBlogPostSchema, insertApiConfigurationSchema,
   insertAdSchema, insertSiteSettingSchema,
-  insertUserFavoriteSchema, insertReadingProgressSchema
+  insertUserFavoriteSchema, insertReadingProgressSchema, insertMangaCommentSchema
 } from "@shared/schema";
 
 // Configure multer for file uploads
@@ -101,6 +101,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       clearInterval(heartbeat);
       sseClients.delete(res);
     });
+  });
+
+  // Manga Comments Routes
+  app.get("/api/manga/:id/comments", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const comments = await storage.getMangaComments(id);
+      res.json(comments);
+    } catch (error: any) {
+      console.error("Error fetching manga comments:", error);
+      res.status(500).json({ message: "Failed to fetch comments" });
+    }
+  });
+
+  app.post("/api/manga/:id/comments", authenticateToken, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { content } = insertMangaCommentSchema.parse(req.body);
+      const userId = req.user!.userId;
+      
+      const comment = await storage.createMangaComment({
+        userId,
+        mangaId: id,
+        content,
+      });
+      
+      res.status(201).json(comment);
+    } catch (error: any) {
+      console.error("Error creating manga comment:", error);
+      res.status(500).json({ message: "Failed to create comment" });
+    }
+  });
+
+  app.delete("/api/manga/:mangaId/comments/:commentId", authenticateToken, async (req, res) => {
+    try {
+      const { commentId } = req.params;
+      const userId = req.user!.userId;
+      
+      await storage.deleteMangaComment(commentId, userId);
+      res.status(204).send();
+    } catch (error: any) {
+      console.error("Error deleting manga comment:", error);
+      res.status(500).json({ message: "Failed to delete comment" });
+    }
   });
 
   app.post("/api/auth/register", async (req, res) => {

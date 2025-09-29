@@ -85,6 +85,15 @@ export const readingProgress = pgTable("reading_progress", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const mangaComments = pgTable("manga_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  mangaId: text("manga_id").notNull(), // MangaDx manga ID
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Analytics Tables
 export const pageViews = pgTable("page_views", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -139,6 +148,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   blogPosts: many(blogPosts),
   favorites: many(userFavorites),
   readingProgress: many(readingProgress),
+  mangaComments: many(mangaComments),
   pageViews: many(pageViews),
   adClicks: many(adClicks),
   sessions: many(userSessions),
@@ -161,6 +171,13 @@ export const userFavoritesRelations = relations(userFavorites, ({ one }) => ({
 export const readingProgressRelations = relations(readingProgress, ({ one }) => ({
   user: one(users, {
     fields: [readingProgress.userId],
+    references: [users.id],
+  }),
+}));
+
+export const mangaCommentsRelations = relations(mangaComments, ({ one }) => ({
+  user: one(users, {
+    fields: [mangaComments.userId],
     references: [users.id],
   }),
 }));
@@ -230,6 +247,12 @@ export const insertReadingProgressSchema = createInsertSchema(readingProgress).o
   updatedAt: true,
 });
 
+export const insertMangaCommentSchema = createInsertSchema(mangaComments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertPageViewSchema = createInsertSchema(pageViews).omit({
   id: true,
   timestamp: true,
@@ -267,6 +290,8 @@ export type UserFavorite = typeof userFavorites.$inferSelect;
 export type InsertUserFavorite = z.infer<typeof insertUserFavoriteSchema>;
 export type ReadingProgress = typeof readingProgress.$inferSelect;
 export type InsertReadingProgress = z.infer<typeof insertReadingProgressSchema>;
+export type MangaComment = typeof mangaComments.$inferSelect;
+export type InsertMangaComment = z.infer<typeof insertMangaCommentSchema>;
 export type PageView = typeof pageViews.$inferSelect;
 export type InsertPageView = z.infer<typeof insertPageViewSchema>;
 export type AdClick = typeof adClicks.$inferSelect;

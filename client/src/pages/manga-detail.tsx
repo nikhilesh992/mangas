@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { MangaCard } from "@/components/manga/manga-card";
+import { MangaComments } from "@/components/manga/manga-comments";
 import { mangaApi, favoritesApi, progressApi } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -498,6 +499,9 @@ export default function MangaDetail() {
               </CardContent>
             </Card>
           )}
+
+          {/* Comments Section */}
+          <MangaComments mangaId={id!} />
         </div>
       </div>
     </div>
