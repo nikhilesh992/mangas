@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { AdSlot } from "@/components/ads/ad-slot";
 import { MangaCard } from "@/components/manga/manga-card";
 import { MangaComments } from "@/components/manga/manga-comments";
+import { Footer } from "@/components/layout/footer";
 import { mangaApi, favoritesApi, progressApi } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -535,6 +536,9 @@ export default function MangaDetail() {
           )}
         </div>
       </div>
+      
+      {/* Footer - positioned at the end of all page content */}
+      <Footer />
     </div>
   );
 }

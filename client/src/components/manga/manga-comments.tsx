@@ -18,7 +18,7 @@ interface MangaCommentsProps {
 
 export function MangaComments({ mangaId }: MangaCommentsProps) {
   const [newComment, setNewComment] = useState("");
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isAdmin } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -140,7 +140,7 @@ export function MangaComments({ mangaId }: MangaCommentsProps) {
                         {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : 'Unknown'}
                       </span>
                     </div>
-                    {user?.id === comment.userId && (
+                    {(user?.id === comment.userId || isAdmin) && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -148,6 +148,7 @@ export function MangaComments({ mangaId }: MangaCommentsProps) {
                         disabled={deleteCommentMutation.isPending}
                         className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
                         data-testid={`delete-comment-${comment.id}`}
+                        title={isAdmin && user?.id !== comment.userId ? "Delete as admin" : "Delete your comment"}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

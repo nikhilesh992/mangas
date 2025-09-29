@@ -3,6 +3,7 @@ import { Heart, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { MangaCard } from "@/components/manga/manga-card";
+import { Footer } from "@/components/layout/footer";
 import { favoritesApi } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -125,6 +126,9 @@ export default function Favorites() {
           </div>
         </>
       )}
+      
+      {/* Footer - positioned at the end of all page content */}
+      <Footer />
     </div>
   );
 }
