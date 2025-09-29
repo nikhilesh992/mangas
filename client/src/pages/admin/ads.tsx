@@ -21,6 +21,8 @@ interface AdForm {
   adScript?: string;
   bannerImage?: string;
   bannerLink?: string;
+  width: number;
+  height: number;
   slots: string[];
   enabled: boolean;
 }
@@ -62,6 +64,8 @@ export default function AdminAds() {
       adScript: "",
       bannerImage: "",
       bannerLink: "",
+      width: 0,
+      height: 0,
       slots: [],
       enabled: true,
     },
@@ -114,6 +118,8 @@ export default function AdminAds() {
     setValue("adScript", ad.adScript || "");
     setValue("bannerImage", ad.bannerImage || "");
     setValue("bannerLink", ad.bannerLink || "");
+    setValue("width", ad.width || 0);
+    setValue("height", ad.height || 0);
     setValue("slots", ad.slots || []);
     setValue("enabled", ad.enabled);
     
@@ -230,6 +236,34 @@ export default function AdminAds() {
                       data-testid="ad-script-textarea"
                     />
                   </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="network-width">Width (pixels)</Label>
+                      <Input 
+                        id="network-width"
+                        type="number"
+                        min="0"
+                        {...register("width", { valueAsNumber: true })}
+                        placeholder="0 = default size"
+                        data-testid="network-width-input"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">0 means use default size</p>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="network-height">Height (pixels)</Label>
+                      <Input 
+                        id="network-height"
+                        type="number"
+                        min="0"
+                        {...register("height", { valueAsNumber: true })}
+                        placeholder="0 = default size"
+                        data-testid="network-height-input"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">0 means use default size</p>
+                    </div>
+                  </div>
                 </>
               ) : (
                 <>
@@ -251,6 +285,34 @@ export default function AdminAds() {
                       placeholder="https://example.com/landing-page"
                       data-testid="banner-link-input"
                     />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="banner-width">Width (pixels)</Label>
+                      <Input 
+                        id="banner-width"
+                        type="number"
+                        min="0"
+                        {...register("width", { valueAsNumber: true })}
+                        placeholder="0 = default size"
+                        data-testid="banner-width-input"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">0 means use default size</p>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="banner-height">Height (pixels)</Label>
+                      <Input 
+                        id="banner-height"
+                        type="number"
+                        min="0"
+                        {...register("height", { valueAsNumber: true })}
+                        placeholder="0 = default size"
+                        data-testid="banner-height-input"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">0 means use default size</p>
+                    </div>
                   </div>
                 </>
               )}
@@ -387,6 +449,17 @@ export default function AdminAds() {
                             className="h-16 object-cover rounded border"
                             data-testid={`ad-banner-${ad.id}`}
                           />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {((ad.width && ad.width > 0) || (ad.height && ad.height > 0)) && (
+                      <div>
+                        <span className="text-sm font-medium text-muted-foreground">Dimensions:</span>
+                        <div className="mt-1">
+                          <Badge variant="outline" className="text-xs">
+                            {ad.width || 'auto'} × {ad.height || 'auto'} px
+                          </Badge>
                         </div>
                       </div>
                     )}

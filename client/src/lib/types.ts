@@ -168,6 +168,8 @@ export interface Ad {
   adScript?: string;
   bannerImage?: string;
   bannerLink?: string;
+  width?: number;
+  height?: number;
   slots: string[];
   enabled: boolean;
   createdAt: string;
