@@ -36,7 +36,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (sseClients.size === 0) return;
     
     try {
-      const settings = await storage.getSettings();
+      const settings = await storage.getSiteSettings();
       const data = `data: ${JSON.stringify({ type: 'settings_update', settings })}\n\n`;
       
       console.log(`Broadcasting settings update to ${sseClients.size} clients`);
@@ -70,7 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log(`SSE client connected. Total clients: ${sseClients.size}`);
 
     // Send initial settings immediately
-    storage.getSettings().then(settings => {
+    storage.getSiteSettings().then(settings => {
       const data = JSON.stringify({ type: 'settings', settings });
       res.write(`data: ${data}\n\n`);
       console.log('Sent initial settings to SSE client');
@@ -899,7 +899,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public settings endpoint (no auth required for real-time updates)
   app.get('/api/settings', async (req, res) => {
     try {
-      const settings = await storage.getSettings();
+      const settings = await storage.getSiteSettings();
       res.json(settings);
     } catch (error) {
       console.error('Error getting public settings:', error);
