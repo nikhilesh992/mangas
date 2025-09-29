@@ -157,398 +157,282 @@ export default function AdminAds() {
             Ad Management
           </h1>
           <p className="text-muted-foreground" data-testid="ads-description">
-            Manage ad networks, custom banners, and ad placements
+            Unified management for ad networks and banner ads
           </p>
         </div>
-      </div>
+        <Dialog open={isAdDialogOpen} onOpenChange={setIsAdDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              onClick={() => {
+                setSelectedAd(null);
+                reset();
+                setAdType("network");
+              }}
+              data-testid="add-ad-button"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Ad
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedAd ? "Edit Ad" : "Add Ad"}
+              </DialogTitle>
+              <DialogDescription>
+                Create network ads or banner ads for your site
+              </DialogDescription>
+            </DialogHeader>
+            
+            <form onSubmit={handleSubmit(onAdSubmit)} className="space-y-4" data-testid="ad-form">
+              <div>
+                <Label>Ad Type</Label>
+                <Select value={adType} onValueChange={(value: "network" | "banner") => setAdType(value)} data-testid="ad-type-select">
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="network">
+                      <div className="flex items-center">
+                        <Network className="h-4 w-4 mr-2" />
+                        Ad Network (Script)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="banner">
+                      <div className="flex items-center">
+                        <Image className="h-4 w-4 mr-2" />
+                        Banner Ad (Image)
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} data-testid="ads-tabs">
-        <TabsList>
-          <TabsTrigger value="networks" data-testid="networks-tab">Ad Networks</TabsTrigger>
-          <TabsTrigger value="banners" data-testid="banners-tab">Custom Banners</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="networks" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-foreground">Ad Networks</h2>
-            <Dialog open={isNetworkDialogOpen} onOpenChange={setIsNetworkDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  onClick={() => {
-                    setSelectedNetwork(null);
-                    resetNetwork();
-                  }}
-                  data-testid="add-network-button"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Network
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>
-                    {selectedNetwork ? "Edit Ad Network" : "Add Ad Network"}
-                  </DialogTitle>
-                  <DialogDescription>
-                    Configure an ad network by pasting the script snippet
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <form onSubmit={handleNetworkSubmit(onNetworkSubmit)} className="space-y-4" data-testid="network-form">
+              {adType === "network" ? (
+                <>
                   <div>
                     <Label htmlFor="network-name">Network Name</Label>
                     <Input 
                       id="network-name"
-                      {...registerNetwork("name", { required: true })}
-                      placeholder="e.g., Google AdSense"
+                      {...register("networkName", { required: true })}
+                      placeholder="e.g., Google AdSense, Adsterra"
                       data-testid="network-name-input"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="network-script">Ad Script</Label>
+                    <Label htmlFor="ad-script">Ad Script</Label>
                     <Textarea 
-                      id="network-script"
-                      {...registerNetwork("script", { required: true })}
+                      id="ad-script"
+                      {...register("adScript", { required: true })}
                       rows={6}
                       placeholder="Paste your ad network script here..."
-                      data-testid="network-script-textarea"
+                      data-testid="ad-script-textarea"
                     />
                   </div>
-                  
+                </>
+              ) : (
+                <>
                   <div>
-                    <Label>Ad Slots</Label>
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {AD_SLOTS.map((slot) => (
-                        <div key={slot} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={`slot-${slot}`}
-                            checked={(watchNetwork("slots") || []).includes(slot)}
-                            onChange={() => toggleSlot(slot, true)}
-                            data-testid={`slot-${slot}`}
-                          />
-                          <Label htmlFor={`slot-${slot}`} className="text-sm">
-                            {slot.replace(/_/g, ' ')}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      checked={watchNetwork("enabled")} 
-                      onCheckedChange={(checked) => setNetworkValue("enabled", checked)}
-                      data-testid="network-enabled-switch"
-                    />
-                    <Label>Enabled</Label>
-                  </div>
-                  
-                  <DialogFooter>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setIsNetworkDialogOpen(false)}
-                      data-testid="cancel-network"
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit" 
-                      disabled={createNetworkMutation.isPending || updateNetworkMutation.isPending}
-                      data-testid="save-network"
-                    >
-                      {selectedNetwork ? "Update" : "Create"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-
-          {networksLoading ? (
-            <div className="space-y-4" data-testid="networks-loading">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-6">
-                    <div className="bg-muted rounded h-16 animate-pulse" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-4" data-testid="networks-list">
-              {networks?.map((network) => (
-                <Card key={network.id} data-testid={`network-${network.id}`}>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${network.enabled ? "bg-green-400" : "bg-gray-400"}`} />
-                        <CardTitle>{network.name}</CardTitle>
-                        <Badge variant="outline">{network.slots.length} slots</Badge>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditNetwork(network)}
-                          data-testid={`edit-network-${network.id}`}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDeleteNetwork(network.id)}
-                          data-testid={`delete-network-${network.id}`}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-sm text-muted-foreground">
-                      <p className="mb-2">Active slots: {network.slots.join(", ")}</p>
-                      <p>Status: {network.enabled ? "Active" : "Disabled"}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              
-              {networks?.length === 0 && (
-                <Card data-testid="no-networks">
-                  <CardContent className="p-8 text-center">
-                    <h3 className="text-lg font-semibold text-foreground mb-2">No Ad Networks</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Add your first ad network to start displaying ads
-                    </p>
-                    <Button onClick={() => setIsNetworkDialogOpen(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Network
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="banners" className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-foreground">Custom Banners</h2>
-            <Dialog open={isBannerDialogOpen} onOpenChange={setIsBannerDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  onClick={() => {
-                    setSelectedBanner(null);
-                    resetBanner();
-                  }}
-                  data-testid="add-banner-button"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Banner
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>
-                    {selectedBanner ? "Edit Custom Banner" : "Add Custom Banner"}
-                  </DialogTitle>
-                  <DialogDescription>
-                    Create a custom banner advertisement
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <form onSubmit={handleBannerSubmit(onBannerSubmit)} className="space-y-4" data-testid="banner-form">
-                  <div>
-                    <Label htmlFor="banner-name">Banner Name</Label>
-                    <Input 
-                      id="banner-name"
-                      {...registerBanner("name", { required: true })}
-                      placeholder="e.g., Homepage Promotion"
-                      data-testid="banner-name-input"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="banner-image">Image URL</Label>
+                    <Label htmlFor="banner-image">Banner Image URL</Label>
                     <Input 
                       id="banner-image"
-                      {...registerBanner("imageUrl", { required: true })}
+                      {...register("bannerImage", { required: true })}
                       placeholder="https://example.com/banner.jpg"
                       data-testid="banner-image-input"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="banner-link">Link URL (optional)</Label>
+                    <Label htmlFor="banner-link">Banner Link (Optional)</Label>
                     <Input 
                       id="banner-link"
-                      {...registerBanner("linkUrl")}
-                      placeholder="https://example.com"
+                      {...register("bannerLink")}
+                      placeholder="https://example.com/landing-page"
                       data-testid="banner-link-input"
                     />
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="banner-start">Start Date (optional)</Label>
-                      <Input 
-                        id="banner-start"
-                        type="date"
-                        {...registerBanner("startDate")}
-                        data-testid="banner-start-input"
+                </>
+              )}
+              
+              <div>
+                <Label>Ad Slots</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {AD_SLOTS.map((slot) => (
+                    <div key={slot} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id={`slot-${slot}`}
+                        checked={(watch("slots") || []).includes(slot)}
+                        onChange={() => toggleSlot(slot)}
+                        data-testid={`slot-${slot}`}
                       />
+                      <Label htmlFor={`slot-${slot}`} className="text-sm">
+                        {slot.replace(/_/g, ' ')}
+                      </Label>
                     </div>
-                    <div>
-                      <Label htmlFor="banner-end">End Date (optional)</Label>
-                      <Input 
-                        id="banner-end"
-                        type="date"
-                        {...registerBanner("endDate")}
-                        data-testid="banner-end-input"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label>Positions</Label>
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {AD_SLOTS.map((slot) => (
-                        <div key={slot} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={`banner-slot-${slot}`}
-                            checked={(watchBanner("positions") || []).includes(slot)}
-                            onChange={() => toggleSlot(slot, false)}
-                            data-testid={`banner-slot-${slot}`}
-                          />
-                          <Label htmlFor={`banner-slot-${slot}`} className="text-sm">
-                            {slot.replace(/_/g, ' ')}
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch 
-                      checked={watchBanner("active")} 
-                      onCheckedChange={(checked) => setBannerValue("active", checked)}
-                      data-testid="banner-active-switch"
-                    />
-                    <Label>Active</Label>
-                  </div>
-                  
-                  <DialogFooter>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setIsBannerDialogOpen(false)}
-                      data-testid="cancel-banner"
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit" 
-                      disabled={createBannerMutation.isPending || updateBannerMutation.isPending}
-                      data-testid="save-banner"
-                    >
-                      {selectedBanner ? "Update" : "Create"}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  checked={watch("enabled")} 
+                  onCheckedChange={(checked) => setValue("enabled", checked)}
+                  data-testid="ad-enabled-switch"
+                />
+                <Label>Enabled</Label>
+              </div>
+              
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setIsAdDialogOpen(false)}
+                  data-testid="cancel-ad"
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={createAdMutation.isPending || updateAdMutation.isPending}
+                  data-testid="submit-ad"
+                >
+                  {selectedAd ? "Update Ad" : "Create Ad"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-          {bannersLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="banners-loading">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-4">
-                    <div className="bg-muted rounded h-32 mb-4 animate-pulse" />
-                    <div className="bg-muted rounded h-4 animate-pulse" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="banners-list">
-              {banners?.map((banner) => (
-                <Card key={banner.id} data-testid={`banner-${banner.id}`}>
-                  <CardContent className="p-4">
-                    <div className="relative mb-4">
-                      <img
-                        src={banner.imageUrl}
-                        alt={banner.name}
-                        className="w-full h-32 object-cover rounded"
-                        onError={(e) => {
-                          e.currentTarget.src = "/placeholder-banner.jpg";
-                        }}
-                      />
-                      <div className="absolute top-2 right-2 flex space-x-1">
-                        <Badge variant={banner.active ? "default" : "secondary"}>
-                          {banner.active ? "Active" : "Inactive"}
-                        </Badge>
+      {/* Ad List */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold text-foreground">Active Ads</h2>
+        
+        {adsLoading ? (
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardHeader>
+                  <div className="h-4 bg-muted rounded w-1/4"></div>
+                  <div className="h-3 bg-muted rounded w-1/2"></div>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        ) : ads && ads.length > 0 ? (
+          <div className="grid gap-4">
+            {ads.map((ad) => (
+              <Card key={ad.id} data-testid={`ad-card-${ad.id}`}>
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      {ad.adScript ? (
+                        <Network className="h-5 w-5 text-blue-500" />
+                      ) : (
+                        <Image className="h-5 w-5 text-green-500" />
+                      )}
+                      <div>
+                        <CardTitle className="text-lg" data-testid={`ad-title-${ad.id}`}>
+                          {ad.networkName || "Banner Ad"}
+                        </CardTitle>
+                        <CardDescription data-testid={`ad-type-${ad.id}`}>
+                          {ad.adScript ? "Network Ad" : "Banner Ad"}
+                        </CardDescription>
                       </div>
                     </div>
-                    
-                    <h3 className="font-semibold text-foreground mb-2">{banner.name}</h3>
-                    
-                    <div className="text-sm text-muted-foreground space-y-1 mb-4">
-                      <p>Positions: {banner.positions.length}</p>
-                      <p>Impressions: {banner.impressions.toLocaleString()}</p>
-                      <p>Clicks: {banner.clicks.toLocaleString()}</p>
-                      {banner.clicks > 0 && (
-                        <p>CTR: {((banner.clicks / banner.impressions) * 100).toFixed(2)}%</p>
-                      )}
+                    <div className="flex items-center space-x-2">
+                      <Badge 
+                        variant={ad.enabled ? "default" : "secondary"}
+                        data-testid={`ad-status-${ad.id}`}
+                      >
+                        {ad.enabled ? (
+                          <>
+                            <Eye className="h-3 w-3 mr-1" />
+                            Enabled
+                          </>
+                        ) : (
+                          <>
+                            <EyeOff className="h-3 w-3 mr-1" />
+                            Disabled
+                          </>
+                        )}
+                      </Badge>
                     </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-3">
+                    {ad.slots && ad.slots.length > 0 && (
+                      <div>
+                        <span className="text-sm font-medium text-muted-foreground">Slots:</span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {ad.slots.map((slot) => (
+                            <Badge key={slot} variant="outline" className="text-xs">
+                              {slot.replace(/_/g, ' ')}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     
-                    <div className="flex justify-between">
+                    {ad.bannerImage && (
+                      <div>
+                        <span className="text-sm font-medium text-muted-foreground">Banner:</span>
+                        <div className="mt-1">
+                          <img 
+                            src={ad.bannerImage} 
+                            alt="Banner preview"
+                            className="h-16 object-cover rounded border"
+                            data-testid={`ad-banner-${ad.id}`}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-end space-x-2 pt-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleEditBanner(banner)}
-                        data-testid={`edit-banner-${banner.id}`}
+                        onClick={() => handleEditAd(ad)}
+                        data-testid={`edit-ad-${ad.id}`}
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
                       </Button>
                       <Button
-                        variant="destructive"
+                        variant="outline"
                         size="sm"
-                        onClick={() => handleDeleteBanner(banner.id)}
-                        data-testid={`delete-banner-${banner.id}`}
+                        onClick={() => handleDeleteAd(ad.id)}
+                        className="text-destructive hover:text-destructive"
+                        data-testid={`delete-ad-${ad.id}`}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Delete
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-              
-              {banners?.length === 0 && (
-                <div className="col-span-full">
-                  <Card data-testid="no-banners">
-                    <CardContent className="p-8 text-center">
-                      <h3 className="text-lg font-semibold text-foreground mb-2">No Custom Banners</h3>
-                      <p className="text-muted-foreground mb-4">
-                        Create your first custom banner advertisement
-                      </p>
-                      <Button onClick={() => setIsBannerDialogOpen(true)}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Banner
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <div className="flex flex-col items-center space-y-2">
+                <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                  <Plus className="h-6 w-6 text-muted-foreground" />
                 </div>
-              )}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+                <h3 className="font-medium">No ads configured</h3>
+                <p className="text-sm text-muted-foreground">
+                  Add your first ad to get started with monetization
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
