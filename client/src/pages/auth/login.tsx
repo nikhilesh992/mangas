@@ -49,25 +49,25 @@ export default function Login() {
   };
 
   return (
-    <div className="flex-1 flex items-center justify-center px-4" data-testid="login-page">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold gradient-hero bg-clip-text text-transparent">
+    <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center px-4 py-12" data-testid="login-page">
+      <Card className="w-full max-w-lg">
+        <CardHeader className="text-center space-y-3 pb-8">
+          <CardTitle className="text-3xl font-bold gradient-hero bg-clip-text text-transparent">
             Welcome Back
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-base">
             Sign in to your account to continue reading
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" data-testid="login-form">
-            <div>
-              <Label htmlFor="username">Username</Label>
+        <CardContent className="px-8 pb-8">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" data-testid="login-form">
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-sm font-medium">Username</Label>
               <Input
                 id="username"
                 type="text"
                 {...register("username")}
-                className={errors.username ? "border-destructive" : ""}
+                className={`h-11 ${errors.username ? "border-destructive" : ""}`}
                 data-testid="username-input"
               />
               {errors.username && (
@@ -77,13 +77,13 @@ export default function Login() {
               )}
             </div>
 
-            <div>
-              <Label htmlFor="password">Password</Label>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-sm font-medium">Password</Label>
               <Input
                 id="password"
                 type="password"
                 {...register("password")}
-                className={errors.password ? "border-destructive" : ""}
+                className={`h-11 ${errors.password ? "border-destructive" : ""}`}
                 data-testid="password-input"
               />
               {errors.password && (
@@ -95,7 +95,7 @@ export default function Login() {
 
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full h-11 text-base font-semibold" 
               disabled={isLoading}
               data-testid="login-submit"
             >
