@@ -7,7 +7,7 @@ import { AuthService } from "./services/auth";
 import { authenticateToken, requireAdmin, optionalAuth, type AuthenticatedRequest } from "./middleware/auth";
 import { 
   insertUserSchema, insertBlogPostSchema, insertApiConfigurationSchema,
-  insertAdNetworkSchema, insertCustomBannerSchema, insertSiteSettingSchema,
+  insertAdSchema, insertSiteSettingSchema,
   insertUserFavoriteSchema, insertReadingProgressSchema
 } from "@shared/schema";
 
@@ -636,7 +636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/ad-networks", authenticateToken, requireAdmin, async (req, res) => {
     try {
-      const networkData = insertAdNetworkSchema.parse(req.body);
+      const networkData = insertAdSchema.parse(req.body);
       const network = await storage.createAdNetwork(networkData);
       res.status(201).json(network);
     } catch (error: any) {
@@ -678,11 +678,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/banners", authenticateToken, requireAdmin, upload.single('image'), async (req, res) => {
     try {
-      const bannerData = insertCustomBannerSchema.parse(req.body);
+      const bannerData = insertAdSchema.parse(req.body);
       
       // In a real app, you'd upload the image to S3/Cloudinary and get the URL
       // For now, we'll use a placeholder URL
-      const imageUrl = req.file ? `/uploads/${Date.now()}-${req.file.originalname}` : bannerData.imageUrl;
+      const imageUrl = req.file ? `/uploads/${Date.now()}-${req.file.originalname}` : bannerData.bannerImage;
       
       const banner = await storage.createCustomBanner({
         ...bannerData,

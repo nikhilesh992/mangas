@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, jsonb, serial } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -43,29 +43,15 @@ export const blogPosts = pgTable("blog_posts", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const adNetworks = pgTable("ad_networks", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  script: text("script").notNull(),
+export const ads = pgTable("ads", {
+  id: serial("id").primaryKey(),
+  networkName: text("network_name"),
+  adScript: text("ad_script"),
+  bannerImage: text("banner_image"),
+  bannerLink: text("banner_link"),
+  slots: text("slots").array().default([]),
   enabled: boolean("enabled").default(true),
-  slots: text("slots").array().default([]), // Array of slot positions
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-export const customBanners = pgTable("custom_banners", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  imageUrl: text("image_url").notNull(),
-  linkUrl: text("link_url"),
-  positions: text("positions").array().default([]), // Array of positions
-  startDate: timestamp("start_date"),
-  endDate: timestamp("end_date"),
-  impressions: integer("impressions").default(0),
-  clicks: integer("clicks").default(0),
-  active: boolean("active").default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const siteSettings = pgTable("site_settings", {
@@ -144,16 +130,9 @@ export const insertApiConfigurationSchema = createInsertSchema(apiConfigurations
   updatedAt: true,
 });
 
-export const insertAdNetworkSchema = createInsertSchema(adNetworks).omit({
+export const insertAdSchema = createInsertSchema(ads).omit({
   id: true,
   createdAt: true,
-  updatedAt: true,
-});
-
-export const insertCustomBannerSchema = createInsertSchema(customBanners).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
 });
 
 export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({
@@ -179,10 +158,8 @@ export type BlogPost = typeof blogPosts.$inferSelect;
 export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
 export type ApiConfiguration = typeof apiConfigurations.$inferSelect;
 export type InsertApiConfiguration = z.infer<typeof insertApiConfigurationSchema>;
-export type AdNetwork = typeof adNetworks.$inferSelect;
-export type InsertAdNetwork = z.infer<typeof insertAdNetworkSchema>;
-export type CustomBanner = typeof customBanners.$inferSelect;
-export type InsertCustomBanner = z.infer<typeof insertCustomBannerSchema>;
+export type Ad = typeof ads.$inferSelect;
+export type InsertAd = z.infer<typeof insertAdSchema>;
 export type SiteSetting = typeof siteSettings.$inferSelect;
 export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;
 export type UserFavorite = typeof userFavorites.$inferSelect;
