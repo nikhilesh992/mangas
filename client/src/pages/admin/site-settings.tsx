@@ -354,20 +354,84 @@ export default function SiteSettingsPage() {
             </div>
 
             <div>
-              <Label htmlFor="discord-url">Discord URL</Label>
+              <Label htmlFor="facebook-url">Facebook URL</Label>
               <div className="flex gap-2">
                 <Input
-                  id="discord-url"
-                  value={getFormValue('discord_url')}
-                  onChange={(e) => handleInputChange('discord_url', e.target.value)}
-                  placeholder="https://discord.gg/myserver"
-                  data-testid="input-discord-url"
+                  id="facebook-url"
+                  value={getFormValue('facebook_url')}
+                  onChange={(e) => handleInputChange('facebook_url', e.target.value)}
+                  placeholder="https://facebook.com/mysite"
+                  data-testid="input-facebook-url"
                 />
                 <Button 
-                  onClick={() => handleSaveSetting('discord_url')}
+                  onClick={() => handleSaveSetting('facebook_url')}
                   disabled={updateSettingMutation.isPending}
                   size="sm"
-                  data-testid="button-save-discord-url"
+                  data-testid="button-save-facebook-url"
+                >
+                  <Save className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="instagram-url">Instagram URL</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="instagram-url"
+                  value={getFormValue('instagram_url')}
+                  onChange={(e) => handleInputChange('instagram_url', e.target.value)}
+                  placeholder="https://instagram.com/mysite"
+                  data-testid="input-instagram-url"
+                />
+                <Button 
+                  onClick={() => handleSaveSetting('instagram_url')}
+                  disabled={updateSettingMutation.isPending}
+                  size="sm"
+                  data-testid="button-save-instagram-url"
+                >
+                  <Save className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="whatsapp-url">WhatsApp URL</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="whatsapp-url"
+                  value={getFormValue('whatsapp_url')}
+                  onChange={(e) => handleInputChange('whatsapp_url', e.target.value)}
+                  placeholder="https://wa.me/1234567890"
+                  data-testid="input-whatsapp-url"
+                />
+                <Button 
+                  onClick={() => handleSaveSetting('whatsapp_url')}
+                  disabled={updateSettingMutation.isPending}
+                  size="sm"
+                  data-testid="button-save-whatsapp-url"
+                >
+                  <Save className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="footer-custom-message">Custom Footer Message</Label>
+              <div className="flex gap-2">
+                <Textarea
+                  id="footer-custom-message"
+                  value={getFormValue('footer_custom_message')}
+                  onChange={(e) => handleInputChange('footer_custom_message', e.target.value)}
+                  placeholder="Optional message to display above copyright text"
+                  rows={2}
+                  data-testid="input-footer-custom-message"
+                />
+                <Button 
+                  onClick={() => handleSaveSetting('footer_custom_message')}
+                  disabled={updateSettingMutation.isPending}
+                  size="sm"
+                  data-testid="button-save-footer-custom-message"
                 >
                   <Save className="h-4 w-4" />
                 </Button>
