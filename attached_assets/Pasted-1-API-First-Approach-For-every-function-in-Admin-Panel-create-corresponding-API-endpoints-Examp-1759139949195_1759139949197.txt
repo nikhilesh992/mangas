@@ -1,0 +1,94 @@
+1. API-First Approach
+
+For every function in Admin Panel, create corresponding API endpoints.
+
+Example:
+
+Ads → /api/ads (CRUD for scripts, banners, slots, enable/disable, width/height).
+
+Header Settings → /api/settings/header.
+
+Footer Settings → /api/settings/footer.
+
+SEO Options → /api/settings/seo.
+
+Users & Auth → /api/auth/login, /api/auth/logout, /api/auth/register.
+
+Analytics (views, impressions, clicks) → /api/analytics.
+
+2. Local Database Connection
+
+Use SQLite (or JSON file storage if lighter).
+
+Every API must store & fetch from this local DB.
+
+Auto-create tables on first run.
+
+No Supabase / external DB → purely local.
+
+3. Frontend Integration
+
+Frontend must always fetch data via APIs, never hardcode or fetch DB directly.
+
+Example:
+
+Homepage ads = GET /api/ads?slot=homepage_top.
+
+Header logo & site name = GET /api/settings/header.
+
+Footer text = GET /api/settings/footer.
+
+When admin updates → APIs update DB → frontend re-fetches and re-renders automatically.
+
+4. Real-Time Updates
+
+After admin makes a change (e.g., edit ad, change logo text, update footer), API should:
+
+Save changes to DB.
+
+Respond with updated data.
+
+Frontend should re-render immediately (no page refresh).
+
+5. Authentication
+
+Create Admin Login API (/api/auth/login) with JWT or token.
+
+Token stored in localStorage so user stays logged in after refresh.
+
+All admin-only APIs should require token authentication.
+
+6. Analytics
+
+Create API endpoints for tracking views, impressions, clicks:
+
+/api/analytics/track-view
+
+/api/analytics/track-click
+
+Store analytics in DB.
+
+Admin portal should show reports from /api/analytics/report.
+
+7. Testing Demo Ads
+
+Add a demo API response for ads, e.g.:
+
+{
+  "networkName": "DemoNetwork",
+  "adScript": "<div style='padding:10px; background:#eee; text-align:center;'>Demo Ad - Qwegle.com</div>",
+  "slots": ["homepage_top"]
+}
+
+
+Use this to confirm ads display properly before adding real networks.
+
+✅ End Result
+
+Admin portal = full control via APIs.
+
+Frontend = only consumes APIs.
+
+Database = always updated locally, no external dependency.
+
+Changes in Admin = instantly visible on frontend.
