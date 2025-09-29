@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { adsApi } from "@/lib/api";
+import type { Ad } from "@/lib/types";
 
 interface AdSlotProps {
   position: string;
@@ -23,7 +24,7 @@ export function AdSlot({ position, className = "" }: AdSlotProps) {
     },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  }) as { data: Ad[] | undefined; error: any; };
 
   const { data: banners, error: bannersError } = useQuery({
     queryKey: ["/api/ads/banners", position],
@@ -37,7 +38,7 @@ export function AdSlot({ position, className = "" }: AdSlotProps) {
     },
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+  }) as { data: Ad[] | undefined; error: any; };
 
   // Inject ad network scripts
   useEffect(() => {
@@ -48,11 +49,11 @@ export function AdSlot({ position, className = "" }: AdSlotProps) {
     );
 
     activeNetworks.forEach(network => {
-      if (network.script) {
+      if (network.adScript) {
         try {
           // Create a temporary container to parse the script
           const temp = document.createElement('div');
-          temp.innerHTML = network.script;
+          temp.innerHTML = network.adScript;
           
           // Find script tags and execute them
           const scripts = temp.querySelectorAll('script');
@@ -112,6 +113,15 @@ export function AdSlot({ position, className = "" }: AdSlotProps) {
   );
   const hasBanners = banners && banners.length > 0;
 
+  // Debugging
+  console.log(`AdSlot[${position}]:`, {
+    adNetworks,
+    banners,
+    hasAdNetworks,
+    hasBanners,
+    willRender: hasAdNetworks || hasBanners
+  });
+
   if (!hasAdNetworks && !hasBanners) {
     return null;
   }
@@ -130,20 +140,20 @@ export function AdSlot({ position, className = "" }: AdSlotProps) {
               key={banner.id}
               className="custom-banner cursor-pointer"
               onClick={() => {
-                if (banner.linkUrl) {
-                  handleBannerClick(banner.id);
-                  window.open(banner.linkUrl, '_blank', 'noopener,noreferrer');
+                if (banner.bannerLink) {
+                  handleBannerClick(banner.id.toString());
+                  window.open(banner.bannerLink, '_blank', 'noopener,noreferrer');
                 }
               }}
               data-testid={`banner-${banner.id}`}
             >
               <img
-                src={banner.imageUrl}
-                alt={banner.name}
+                src={banner.bannerImage}
+                alt={banner.networkName || 'Advertisement'}
                 className="w-full h-auto rounded-lg shadow-sm hover:shadow-md transition-shadow"
                 loading="lazy"
                 onError={(e) => {
-                  console.error('Error loading banner image:', banner.imageUrl);
+                  console.error('Error loading banner image:', banner.bannerImage);
                   e.currentTarget.style.display = 'none';
                 }}
               />
