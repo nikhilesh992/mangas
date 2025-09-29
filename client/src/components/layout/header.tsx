@@ -24,7 +24,13 @@ export function Header() {
   const isHomePage = location === "/" || location === "/home";
   const [searchValue, setSearchValue] = useState("");
 
-
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchValue.trim()) {
+      // Navigate to home page with search query
+      navigate(`/?search=${encodeURIComponent(searchValue.trim())}`);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -82,7 +88,7 @@ export function Header() {
           <div className="flex items-center space-x-4">
             {/* Search Bar - Desktop */}
             {isHomePage && !isMobile && (
-              <div className="relative">
+              <form onSubmit={handleSearch} className="relative">
                 <Input
                   type="search"
                   placeholder="Search for manga titles..."
@@ -92,7 +98,7 @@ export function Header() {
                   data-testid="search-input"
                 />
                 <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              </div>
+              </form>
             )}
 
             {isAuthenticated ? (
@@ -156,7 +162,7 @@ export function Header() {
           <div className="mt-4 py-4 border-t border-border" data-testid="mobile-menu">
             {/* Search Bar - Mobile */}
             {isHomePage && (
-              <div className="relative mb-4">
+              <form onSubmit={handleSearch} className="relative mb-4">
                 <Input
                   type="search"
                   placeholder="Search for manga titles..."
@@ -166,7 +172,7 @@ export function Header() {
                   data-testid="search-input-mobile"
                 />
                 <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              </div>
+              </form>
             )}
             <nav className="flex flex-col space-y-3">
               <Link 
