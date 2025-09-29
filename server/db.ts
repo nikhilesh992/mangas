@@ -10,8 +10,9 @@ neonConfig.webSocketConstructor = ws;
 let pool: Pool | null = null;
 let db: any = null;
 
-// Initialize in-memory users for testing until Supabase is connected
+// Initialize in-memory storage for testing until Supabase is connected
 const memoryUsers = new Map();
+const memoryAds = new Map();
 
 // Initialize test users
 async function initializeTestUsers() {
@@ -65,5 +66,5 @@ async function initializeDatabase() {
 // Initialize database connection
 initializeDatabase().catch(console.error);
 
-// Export both for fallback
-export { pool, db, memoryUsers };
+// Export for fallback
+export { pool, db, memoryUsers, memoryAds };

@@ -8,7 +8,7 @@ import {
   type UserFavorite, type InsertUserFavorite,
   type ReadingProgress, type InsertReadingProgress
 } from "@shared/schema";
-import { db, memoryUsers } from "./db";
+import { db, memoryUsers, memoryAds } from "./db";
 import { eq, desc, like, and, or, sql, isNull } from "drizzle-orm";
 
 export interface IStorage {
@@ -70,7 +70,7 @@ export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
     if (!db) {
       // Fallback to memory storage
-      for (const [_, user] of memoryUsers) {
+      for (const [_, user] of Array.from(memoryUsers.values())) {
         if (user.id === id) return user;
       }
       return undefined;
@@ -91,7 +91,7 @@ export class DatabaseStorage implements IStorage {
   async getUserByEmail(email: string): Promise<User | undefined> {
     if (!db) {
       // Fallback to memory storage
-      for (const [_, user] of memoryUsers) {
+      for (const user of Array.from(memoryUsers.values())) {
         if (user.email === email) return user;
       }
       return undefined;
@@ -204,15 +204,29 @@ export class DatabaseStorage implements IStorage {
 
   // Ads (unified ad networks and banners)
   async getAds(): Promise<Ad[]> {
+    if (!db) {
+      // Fallback to memory storage
+      return Array.from(memoryAds.values()).sort((a, b) => (a.networkName || '').localeCompare(b.networkName || ''));
+    }
     return await db.select().from(ads).orderBy(ads.networkName);
   }
 
   async getAd(id: number): Promise<Ad | undefined> {
+    if (!db) {
+      // Fallback to memory storage
+      return memoryAds.get(id);
+    }
     const [ad] = await db.select().from(ads).where(eq(ads.id, id));
     return ad || undefined;
   }
 
   async getAdsBySlot(slot: string): Promise<Ad[]> {
+    if (!db) {
+      // Fallback to memory storage
+      return Array.from(memoryAds.values())
+        .filter(ad => ad.enabled && ad.slots && ad.slots.includes(slot))
+        .sort((a, b) => (a.networkName || '').localeCompare(b.networkName || ''));
+    }
     return await db.select().from(ads)
       .where(
         and(
@@ -224,20 +238,55 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getEnabledAds(): Promise<Ad[]> {
+    if (!db) {
+      // Fallback to memory storage
+      return Array.from(memoryAds.values()).filter(ad => ad.enabled);
+    }
     return await db.select().from(ads).where(eq(ads.enabled, true));
   }
 
   async createAd(ad: InsertAd): Promise<Ad> {
+    if (!db) {
+      // Fallback to memory storage
+      const id = Math.max(...Array.from(memoryAds.keys()), 0) + 1;
+      const newAd = { 
+        id, 
+        networkName: ad.networkName ?? null,
+        adScript: ad.adScript ?? null,
+        bannerImage: ad.bannerImage ?? null,
+        bannerLink: ad.bannerLink ?? null,
+        slots: ad.slots ?? null,
+        enabled: ad.enabled ?? true,
+        createdAt: new Date()
+      };
+      memoryAds.set(id, newAd);
+      return newAd;
+    }
     const [newAd] = await db.insert(ads).values(ad).returning();
     return newAd;
   }
 
   async updateAd(id: number, updates: Partial<InsertAd>): Promise<Ad> {
+    if (!db) {
+      // Fallback to memory storage
+      const existingAd = memoryAds.get(id);
+      if (!existingAd) {
+        throw new Error('Ad not found');
+      }
+      const updatedAd = { ...existingAd, ...updates };
+      memoryAds.set(id, updatedAd);
+      return updatedAd;
+    }
     const [ad] = await db.update(ads).set(updates).where(eq(ads.id, id)).returning();
     return ad;
   }
 
   async deleteAd(id: number): Promise<void> {
+    if (!db) {
+      // Fallback to memory storage
+      memoryAds.delete(id);
+      return;
+    }
     await db.delete(ads).where(eq(ads.id, id));
   }
 
