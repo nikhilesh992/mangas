@@ -9,7 +9,7 @@ import {
   type UserFavorite, type InsertUserFavorite,
   type ReadingProgress, type InsertReadingProgress
 } from "@shared/schema";
-import { db } from "./db";
+import { db, memoryUsers } from "./db";
 import { eq, desc, like, and, or, sql, isNull } from "drizzle-orm";
 
 export interface IStorage {
@@ -78,21 +78,43 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // Users
   async getUser(id: string): Promise<User | undefined> {
+    if (!db) {
+      // Fallback to memory storage
+      for (const [_, user] of memoryUsers) {
+        if (user.id === id) return user;
+      }
+      return undefined;
+    }
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
+    if (!db) {
+      // Fallback to memory storage
+      return memoryUsers.get(username);
+    }
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user || undefined;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
+    if (!db) {
+      // Fallback to memory storage
+      for (const [_, user] of memoryUsers) {
+        if (user.email === email) return user;
+      }
+      return undefined;
+    }
     const [user] = await db.select().from(users).where(eq(users.email, email));
     return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
+    if (!db) {
+      // Fallback to memory storage - not implemented for now
+      throw new Error('User creation not available with memory storage');
+    }
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
