@@ -145,7 +145,7 @@ export function AdSlot({ position, className = "" }: AdSlotProps) {
 
   return (
     <div 
-      className={`ad-slot ${className}`} 
+      className={`ad-slot ${className} flex justify-center my-6`} 
       data-position={position}
       data-testid={`ad-slot-${position}`}
     >

@@ -288,7 +288,9 @@ export default function Home() {
           </div>
 
           {/* Ad Slot - Homepage Top */}
-          <AdSlot position="homepage_top" />
+          <div className="mb-8 mt-6">
+            <AdSlot position="homepage_top" />
+          </div>
 
           {/* Results */}
           {error && (

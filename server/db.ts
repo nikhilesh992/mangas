@@ -15,7 +15,7 @@ const memoryUsers = new Map();
 const memoryAds = new Map();
 const memorySiteSettings = new Map();
 
-// Initialize test users
+// Initialize test users and default site settings
 async function initializeTestUsers() {
   const hashedPassword = await AuthService.hashPassword('password123');
   
@@ -39,7 +39,37 @@ async function initializeTestUsers() {
     updatedAt: new Date()
   });
   
+  // Initialize default site settings
+  const now = new Date();
+  memorySiteSettings.set('site_name', {
+    id: 'setting-1',
+    key: 'site_name',
+    value: 'MangaVerse',
+    type: 'string',
+    createdAt: now,
+    updatedAt: now
+  });
+  
+  memorySiteSettings.set('site_description', {
+    id: 'setting-2',
+    key: 'site_description',
+    value: 'Your ultimate destination for reading manga online',
+    type: 'string',
+    createdAt: now,
+    updatedAt: now
+  });
+  
+  memorySiteSettings.set('footer_text', {
+    id: 'setting-3',
+    key: 'footer_text',
+    value: '© 2025 MangaVerse. All rights reserved.',
+    type: 'string',
+    createdAt: now,
+    updatedAt: now
+  });
+  
   console.log('✅ Test users initialized: admin/password123, user1/password123');
+  console.log('✅ Default site settings initialized');
 }
 
 async function initializeDatabase() {
