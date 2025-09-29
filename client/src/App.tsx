@@ -103,7 +103,6 @@ function MainRouter() {
           <Route component={NotFound} />
         </Switch>
       </main>
-      <Footer />
     </div>
   );
 }

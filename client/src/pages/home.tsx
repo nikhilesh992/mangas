@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MangaCard } from "@/components/manga/manga-card";
 import { AdSlot } from "@/components/ads/ad-slot";
+import { Footer } from "@/components/layout/footer";
 import { mangaApi } from "@/lib/api";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -422,6 +423,9 @@ export default function Home() {
         </div>
       </div>
       </div>
+      
+      {/* Footer - positioned at the end of all page content */}
+      <Footer />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { BlogCard } from "@/components/blog/blog-card";
 import { AdSlot } from "@/components/ads/ad-slot";
+import { Footer } from "@/components/layout/footer";
 import { blogApi } from "@/lib/api";
 
 export default function Blog() {
@@ -189,6 +190,9 @@ export default function Blog() {
           </div>
         </div>
       </div>
+      
+      {/* Footer - positioned at the end of all page content */}
+      <Footer />
     </div>
   );
 }
