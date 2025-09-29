@@ -407,7 +407,9 @@ export default function Home() {
               )}
 
               {/* Ad Slot - Homepage Bottom */}
-              <AdSlot position="homepage_bottom" />
+              <div className="mt-8">
+                <AdSlot position="homepage_bottom" />
+              </div>
             </>
           )}
         </div>
