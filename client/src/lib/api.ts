@@ -2,7 +2,7 @@ import { apiRequest } from "./queryClient";
 import type { 
   Manga, Chapter, MangaSearchParams, MangaListResponse, BlogPost, User, 
   UserFavorite, ReadingProgress, ApiConfiguration, 
-  AdNetwork, CustomBanner, SiteSetting, DashboardStats,
+  Ad, AdNetwork, CustomBanner, SiteSetting, DashboardStats,
   AnalyticsEvent, AnalyticsFilters
 } from "./types";
 
@@ -214,7 +214,27 @@ export const adminApi = {
     await apiRequest("DELETE", `/api/admin/api-config/${id}`);
   },
 
-  // Ad Networks
+  // Unified Ads API
+  getAds: async (): Promise<Ad[]> => {
+    const response = await apiRequest("GET", "/api/admin/ads");
+    return response.json();
+  },
+
+  createAd: async (ad: Partial<Ad>) => {
+    const response = await apiRequest("POST", "/api/ads", ad);
+    return response.json();
+  },
+
+  updateAd: async (id: number, updates: Partial<Ad>) => {
+    const response = await apiRequest("PUT", `/api/ads/${id}`, updates);
+    return response.json();
+  },
+
+  deleteAd: async (id: number) => {
+    await apiRequest("DELETE", `/api/ads/${id}`);
+  },
+
+  // Legacy Ad Networks (for backward compatibility)
   getAdNetworks: async (): Promise<AdNetwork[]> => {
     const response = await apiRequest("GET", "/api/admin/ad-networks");
     return response.json();
@@ -234,7 +254,7 @@ export const adminApi = {
     await apiRequest("DELETE", `/api/admin/ad-networks/${id}`);
   },
 
-  // Custom Banners
+  // Legacy Custom Banners (for backward compatibility)
   getBanners: async (): Promise<CustomBanner[]> => {
     const response = await apiRequest("GET", "/api/admin/banners");
     return response.json();

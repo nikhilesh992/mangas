@@ -161,6 +161,19 @@ export interface ApiConfiguration {
   updatedAt: string;
 }
 
+// Unified Ad interface (replaces AdNetwork and CustomBanner)
+export interface Ad {
+  id: number;
+  networkName?: string;
+  adScript?: string;
+  bannerImage?: string;
+  bannerLink?: string;
+  slots: string[];
+  enabled: boolean;
+  createdAt: string;
+}
+
+// Legacy interfaces (for backward compatibility)
 export interface AdNetwork {
   id: string;
   name: string;

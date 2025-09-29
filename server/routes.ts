@@ -624,114 +624,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin routes - Ad Networks
-  app.get("/api/admin/ad-networks", authenticateToken, requireAdmin, async (req, res) => {
+  // Unified Ads API (replaces separate ad networks and banners)
+  // POST /api/ads → Add new ad (network or banner)
+  app.post("/api/ads", authenticateToken, requireAdmin, upload.single('image'), async (req, res) => {
     try {
-      const networks = await storage.getAdNetworks();
-      res.json(networks);
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  app.post("/api/admin/ad-networks", authenticateToken, requireAdmin, async (req, res) => {
-    try {
-      const networkData = insertAdSchema.parse(req.body);
-      const network = await storage.createAdNetwork(networkData);
-      res.status(201).json(network);
+      const adData = insertAdSchema.parse(req.body);
+      
+      // Handle file upload for banner ads
+      if (req.file) {
+        adData.bannerImage = `/uploads/${Date.now()}-${req.file.originalname}`;
+      }
+      
+      const ad = await storage.createAd(adData);
+      res.status(201).json(ad);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
   });
 
-  app.put("/api/admin/ad-networks/:id", authenticateToken, requireAdmin, async (req, res) => {
+  // GET /api/ads?slot=homepage_top → Fetch ads by slot
+  app.get("/api/ads", async (req, res) => {
     try {
-      const { id } = req.params;
+      const { slot } = req.query;
+      
+      let ads;
+      if (slot) {
+        ads = await storage.getAdsBySlot(slot as string);
+      } else {
+        ads = await storage.getEnabledAds();
+      }
+      
+      res.json(ads);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // PUT /api/ads/:id → Edit ad
+  app.put("/api/ads/:id", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ad ID" });
+      }
+      
       const updates = req.body;
-      
-      const network = await storage.updateAdNetwork(id, updates);
-      res.json(network);
+      const ad = await storage.updateAd(id, updates);
+      res.json(ad);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
   });
 
-  app.delete("/api/admin/ad-networks/:id", authenticateToken, requireAdmin, async (req, res) => {
+  // DELETE /api/ads/:id → Delete ad
+  app.delete("/api/ads/:id", authenticateToken, requireAdmin, async (req, res) => {
     try {
-      const { id } = req.params;
-      await storage.deleteAdNetwork(id);
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid ad ID" });
+      }
+      
+      await storage.deleteAd(id);
       res.status(204).send();
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  // Admin routes - Custom Banners
-  app.get("/api/admin/banners", authenticateToken, requireAdmin, async (req, res) => {
+  // Admin endpoint to get all ads
+  app.get("/api/admin/ads", authenticateToken, requireAdmin, async (req, res) => {
     try {
-      const banners = await storage.getCustomBanners();
-      res.json(banners);
+      const ads = await storage.getAds();
+      res.json(ads);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
     }
   });
 
-  app.post("/api/admin/banners", authenticateToken, requireAdmin, upload.single('image'), async (req, res) => {
-    try {
-      const bannerData = insertAdSchema.parse(req.body);
-      
-      // In a real app, you'd upload the image to S3/Cloudinary and get the URL
-      // For now, we'll use a placeholder URL
-      const imageUrl = req.file ? `/uploads/${Date.now()}-${req.file.originalname}` : bannerData.bannerImage;
-      
-      const banner = await storage.createCustomBanner({
-        ...bannerData,
-        imageUrl,
-      });
-      
-      res.status(201).json(banner);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.put("/api/admin/banners/:id", authenticateToken, requireAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const updates = req.body;
-      
-      const banner = await storage.updateCustomBanner(id, updates);
-      res.json(banner);
-    } catch (error: any) {
-      res.status(400).json({ message: error.message });
-    }
-  });
-
-  app.delete("/api/admin/banners/:id", authenticateToken, requireAdmin, async (req, res) => {
-    try {
-      const { id } = req.params;
-      await storage.deleteCustomBanner(id);
-      res.status(204).send();
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Banner click tracking
-  app.post("/api/banners/:id/click", async (req, res) => {
-    try {
-      const { id } = req.params;
-      await storage.incrementBannerClicks(id);
-      res.status(204).send();
-    } catch (error: any) {
-      res.status(500).json({ message: error.message });
-    }
-  });
-
-  // Public ad/banner routes
+  // Legacy endpoints for backward compatibility (temporary)
   app.get("/api/ads/networks", async (req, res) => {
     try {
-      const networks = await storage.getEnabledAdNetworks();
+      const ads = await storage.getEnabledAds();
+      // Filter to only return ads with scripts (network ads)
+      const networks = ads.filter(ad => ad.adScript);
       res.json(networks);
     } catch (error: any) {
       res.status(500).json({ message: error.message });
@@ -741,11 +716,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/ads/banners", async (req, res) => {
     try {
       const { position } = req.query;
-      const banners = await storage.getActiveBanners(position as string);
+      let ads;
       
-      // Increment impressions for returned banners
-      await Promise.all(banners.map(banner => storage.incrementBannerImpressions(banner.id)));
+      if (position) {
+        ads = await storage.getAdsBySlot(position as string);
+      } else {
+        ads = await storage.getEnabledAds();
+      }
       
+      // Filter to only return ads with banner images (banner ads)
+      const banners = ads.filter(ad => ad.bannerImage);
+      res.json(banners);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Legacy admin endpoints for backward compatibility (temporary)
+  app.get("/api/admin/ad-networks", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const ads = await storage.getAds();
+      const networks = ads.filter(ad => ad.adScript);
+      res.json(networks);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  app.get("/api/admin/banners", authenticateToken, requireAdmin, async (req, res) => {
+    try {
+      const ads = await storage.getAds();
+      const banners = ads.filter(ad => ad.bannerImage);
       res.json(banners);
     } catch (error: any) {
       res.status(500).json({ message: error.message });

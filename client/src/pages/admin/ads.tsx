@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Edit, Trash2, Eye, EyeOff, Upload } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, EyeOff, Upload, Network, Image } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,23 +14,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { adminApi } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import type { AdNetwork, CustomBanner } from "@/lib/types";
+import type { Ad } from "@/lib/types";
 
-interface AdNetworkForm {
-  name: string;
-  script: string;
-  enabled: boolean;
+interface AdForm {
+  networkName?: string;
+  adScript?: string;
+  bannerImage?: string;
+  bannerLink?: string;
   slots: string[];
-}
-
-interface CustomBannerForm {
-  name: string;
-  imageUrl: string;
-  linkUrl?: string;
-  positions: string[];
-  startDate?: string;
-  endDate?: string;
-  active: boolean;
+  enabled: boolean;
 }
 
 const AD_SLOTS = [
@@ -47,205 +39,114 @@ const AD_SLOTS = [
 ];
 
 export default function AdminAds() {
-  const [activeTab, setActiveTab] = useState("networks");
-  const [selectedNetwork, setSelectedNetwork] = useState<AdNetwork | null>(null);
-  const [selectedBanner, setSelectedBanner] = useState<CustomBanner | null>(null);
-  const [isNetworkDialogOpen, setIsNetworkDialogOpen] = useState(false);
-  const [isBannerDialogOpen, setIsBannerDialogOpen] = useState(false);
+  const [selectedAd, setSelectedAd] = useState<Ad | null>(null);
+  const [isAdDialogOpen, setIsAdDialogOpen] = useState(false);
+  const [adType, setAdType] = useState<"network" | "banner">("network");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: networks, isLoading: networksLoading } = useQuery({
-    queryKey: ["/api/admin/ad-networks"],
-    queryFn: adminApi.getAdNetworks,
-  });
-
-  const { data: banners, isLoading: bannersLoading } = useQuery({
-    queryKey: ["/api/admin/banners"],
-    queryFn: adminApi.getBanners,
+  const { data: ads, isLoading: adsLoading } = useQuery({
+    queryKey: ["/api/admin/ads"],
+    queryFn: adminApi.getAds,
   });
 
   const {
-    register: registerNetwork,
-    handleSubmit: handleNetworkSubmit,
-    reset: resetNetwork,
-    setValue: setNetworkValue,
-    watch: watchNetwork,
-  } = useForm<AdNetworkForm>({
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+  } = useForm<AdForm>({
     defaultValues: {
-      name: "",
-      script: "",
-      enabled: true,
+      networkName: "",
+      adScript: "",
+      bannerImage: "",
+      bannerLink: "",
       slots: [],
+      enabled: true,
     },
   });
 
-  const {
-    register: registerBanner,
-    handleSubmit: handleBannerSubmit,
-    reset: resetBanner,
-    setValue: setBannerValue,
-    watch: watchBanner,
-  } = useForm<CustomBannerForm>({
-    defaultValues: {
-      name: "",
-      imageUrl: "",
-      linkUrl: "",
-      positions: [],
-      active: true,
-    },
-  });
-
-  // Ad Network Mutations
-  const createNetworkMutation = useMutation({
-    mutationFn: adminApi.createAdNetwork,
+  // Unified Ad Mutations
+  const createAdMutation = useMutation({
+    mutationFn: adminApi.createAd,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/ad-networks"] });
-      toast({ title: "Ad network created successfully" });
-      setIsNetworkDialogOpen(false);
-      resetNetwork();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ads"] });
+      toast({ title: "Ad created successfully" });
+      setIsAdDialogOpen(false);
+      reset();
     },
     onError: () => {
-      toast({ title: "Failed to create ad network", variant: "destructive" });
+      toast({ title: "Failed to create ad", variant: "destructive" });
     },
   });
 
-  const updateNetworkMutation = useMutation({
-    mutationFn: ({ id, ...data }: { id: string } & Partial<AdNetwork>) =>
-      adminApi.updateAdNetwork(id, data),
+  const updateAdMutation = useMutation({
+    mutationFn: ({ id, ...data }: { id: number } & Partial<Ad>) =>
+      adminApi.updateAd(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/ad-networks"] });
-      toast({ title: "Ad network updated successfully" });
-      setIsNetworkDialogOpen(false);
-      setSelectedNetwork(null);
-      resetNetwork();
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ads"] });
+      toast({ title: "Ad updated successfully" });
+      setIsAdDialogOpen(false);
+      setSelectedAd(null);
+      reset();
     },
     onError: () => {
-      toast({ title: "Failed to update ad network", variant: "destructive" });
+      toast({ title: "Failed to update ad", variant: "destructive" });
     },
   });
 
-  const deleteNetworkMutation = useMutation({
-    mutationFn: adminApi.deleteAdNetwork,
+  const deleteAdMutation = useMutation({
+    mutationFn: adminApi.deleteAd,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/ad-networks"] });
-      toast({ title: "Ad network deleted successfully" });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/ads"] });
+      toast({ title: "Ad deleted successfully" });
     },
     onError: () => {
-      toast({ title: "Failed to delete ad network", variant: "destructive" });
-    },
-  });
-
-  // Custom Banner Mutations
-  const createBannerMutation = useMutation({
-    mutationFn: adminApi.createBanner,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/banners"] });
-      toast({ title: "Custom banner created successfully" });
-      setIsBannerDialogOpen(false);
-      resetBanner();
-    },
-    onError: () => {
-      toast({ title: "Failed to create custom banner", variant: "destructive" });
-    },
-  });
-
-  const updateBannerMutation = useMutation({
-    mutationFn: ({ id, ...data }: { id: string } & Partial<CustomBanner>) =>
-      adminApi.updateBanner(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/banners"] });
-      toast({ title: "Custom banner updated successfully" });
-      setIsBannerDialogOpen(false);
-      setSelectedBanner(null);
-      resetBanner();
-    },
-    onError: () => {
-      toast({ title: "Failed to update custom banner", variant: "destructive" });
-    },
-  });
-
-  const deleteBannerMutation = useMutation({
-    mutationFn: adminApi.deleteBanner,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/banners"] });
-      toast({ title: "Custom banner deleted successfully" });
-    },
-    onError: () => {
-      toast({ title: "Failed to delete custom banner", variant: "destructive" });
+      toast({ title: "Failed to delete ad", variant: "destructive" });
     },
   });
 
   // Handle Functions
-  const handleEditNetwork = (network: AdNetwork) => {
-    setSelectedNetwork(network);
-    setNetworkValue("name", network.name);
-    setNetworkValue("script", network.script);
-    setNetworkValue("enabled", network.enabled);
-    setNetworkValue("slots", network.slots);
-    setIsNetworkDialogOpen(true);
+  const handleEditAd = (ad: Ad) => {
+    setSelectedAd(ad);
+    setValue("networkName", ad.networkName || "");
+    setValue("adScript", ad.adScript || "");
+    setValue("bannerImage", ad.bannerImage || "");
+    setValue("bannerLink", ad.bannerLink || "");
+    setValue("slots", ad.slots || []);
+    setValue("enabled", ad.enabled);
+    
+    // Determine ad type based on content
+    if (ad.adScript) {
+      setAdType("network");
+    } else if (ad.bannerImage) {
+      setAdType("banner");
+    }
+    
+    setIsAdDialogOpen(true);
   };
 
-  const handleEditBanner = (banner: CustomBanner) => {
-    setSelectedBanner(banner);
-    setBannerValue("name", banner.name);
-    setBannerValue("imageUrl", banner.imageUrl);
-    setBannerValue("linkUrl", banner.linkUrl || "");
-    setBannerValue("positions", banner.positions);
-    setBannerValue("startDate", banner.startDate ? banner.startDate.split('T')[0] : "");
-    setBannerValue("endDate", banner.endDate ? banner.endDate.split('T')[0] : "");
-    setBannerValue("active", banner.active);
-    setIsBannerDialogOpen(true);
-  };
-
-  const handleDeleteNetwork = (id: string) => {
-    if (confirm("Are you sure you want to delete this ad network?")) {
-      deleteNetworkMutation.mutate(id);
+  const handleDeleteAd = (id: number) => {
+    if (confirm("Are you sure you want to delete this ad?")) {
+      deleteAdMutation.mutate(id);
     }
   };
 
-  const handleDeleteBanner = (id: string) => {
-    if (confirm("Are you sure you want to delete this banner?")) {
-      deleteBannerMutation.mutate(id);
-    }
-  };
-
-  const onNetworkSubmit = (data: AdNetworkForm) => {
-    if (selectedNetwork) {
-      updateNetworkMutation.mutate({ id: selectedNetwork.id, ...data });
+  const onAdSubmit = (data: AdForm) => {
+    if (selectedAd) {
+      updateAdMutation.mutate({ id: selectedAd.id, ...data });
     } else {
-      createNetworkMutation.mutate(data);
+      createAdMutation.mutate(data);
     }
   };
 
-  const onBannerSubmit = (data: CustomBannerForm) => {
-    const bannerData = {
-      ...data,
-      startDate: data.startDate ? new Date(data.startDate).toISOString() : undefined,
-      endDate: data.endDate ? new Date(data.endDate).toISOString() : undefined,
-    };
-
-    if (selectedBanner) {
-      updateBannerMutation.mutate({ id: selectedBanner.id, ...bannerData });
-    } else {
-      createBannerMutation.mutate(bannerData);
-    }
-  };
-
-  const toggleSlot = (slot: string, isNetworkForm: boolean = true) => {
-    if (isNetworkForm) {
-      const currentSlots = watchNetwork("slots") || [];
-      const newSlots = currentSlots.includes(slot)
-        ? currentSlots.filter(s => s !== slot)
-        : [...currentSlots, slot];
-      setNetworkValue("slots", newSlots);
-    } else {
-      const currentPositions = watchBanner("positions") || [];
-      const newPositions = currentPositions.includes(slot)
-        ? currentPositions.filter(s => s !== slot)
-        : [...currentPositions, slot];
-      setBannerValue("positions", newPositions);
-    }
+  const toggleSlot = (slot: string) => {
+    const currentSlots = watch("slots") || [];
+    const newSlots = currentSlots.includes(slot)
+      ? currentSlots.filter(s => s !== slot)
+      : [...currentSlots, slot];
+    setValue("slots", newSlots);
   };
 
   return (

@@ -1,10 +1,9 @@
 import {
-  users, blogPosts, apiConfigurations, adNetworks, customBanners,
+  users, blogPosts, apiConfigurations, ads,
   siteSettings, userFavorites, readingProgress,
   type User, type InsertUser, type BlogPost, type InsertBlogPost,
   type ApiConfiguration, type InsertApiConfiguration,
-  type AdNetwork, type InsertAdNetwork,
-  type CustomBanner, type InsertCustomBanner,
+  type Ad, type InsertAd,
   type SiteSetting, type InsertSiteSetting,
   type UserFavorite, type InsertUserFavorite,
   type ReadingProgress, type InsertReadingProgress
@@ -38,23 +37,14 @@ export interface IStorage {
   updateApiConfiguration(id: string, updates: Partial<InsertApiConfiguration>): Promise<ApiConfiguration>;
   deleteApiConfiguration(id: string): Promise<void>;
 
-  // Ad Networks
-  getAdNetworks(): Promise<AdNetwork[]>;
-  getAdNetwork(id: string): Promise<AdNetwork | undefined>;
-  getEnabledAdNetworks(): Promise<AdNetwork[]>;
-  createAdNetwork(network: InsertAdNetwork): Promise<AdNetwork>;
-  updateAdNetwork(id: string, updates: Partial<InsertAdNetwork>): Promise<AdNetwork>;
-  deleteAdNetwork(id: string): Promise<void>;
-
-  // Custom Banners
-  getCustomBanners(): Promise<CustomBanner[]>;
-  getCustomBanner(id: string): Promise<CustomBanner | undefined>;
-  getActiveBanners(position?: string): Promise<CustomBanner[]>;
-  createCustomBanner(banner: InsertCustomBanner): Promise<CustomBanner>;
-  updateCustomBanner(id: string, updates: Partial<InsertCustomBanner>): Promise<CustomBanner>;
-  deleteCustomBanner(id: string): Promise<void>;
-  incrementBannerImpressions(id: string): Promise<void>;
-  incrementBannerClicks(id: string): Promise<void>;
+  // Ads (unified ad networks and banners)
+  getAds(): Promise<Ad[]>;
+  getAd(id: number): Promise<Ad | undefined>;
+  getAdsBySlot(slot: string): Promise<Ad[]>;
+  getEnabledAds(): Promise<Ad[]>;
+  createAd(ad: InsertAd): Promise<Ad>;
+  updateAd(id: number, updates: Partial<InsertAd>): Promise<Ad>;
+  deleteAd(id: number): Promise<void>;
 
   // Site Settings
   getSiteSettings(): Promise<SiteSetting[]>;
@@ -212,84 +202,43 @@ export class DatabaseStorage implements IStorage {
     await db.delete(apiConfigurations).where(eq(apiConfigurations.id, id));
   }
 
-  // Ad Networks
-  async getAdNetworks(): Promise<AdNetwork[]> {
-    return await db.select().from(adNetworks).orderBy(adNetworks.name);
+  // Ads (unified ad networks and banners)
+  async getAds(): Promise<Ad[]> {
+    return await db.select().from(ads).orderBy(ads.networkName);
   }
 
-  async getAdNetwork(id: string): Promise<AdNetwork | undefined> {
-    const [network] = await db.select().from(adNetworks).where(eq(adNetworks.id, id));
-    return network || undefined;
+  async getAd(id: number): Promise<Ad | undefined> {
+    const [ad] = await db.select().from(ads).where(eq(ads.id, id));
+    return ad || undefined;
   }
 
-  async getEnabledAdNetworks(): Promise<AdNetwork[]> {
-    return await db.select().from(adNetworks).where(eq(adNetworks.enabled, true));
-  }
-
-  async createAdNetwork(network: InsertAdNetwork): Promise<AdNetwork> {
-    const [newNetwork] = await db.insert(adNetworks).values(network).returning();
-    return newNetwork;
-  }
-
-  async updateAdNetwork(id: string, updates: Partial<InsertAdNetwork>): Promise<AdNetwork> {
-    const [network] = await db.update(adNetworks).set({ ...updates, updatedAt: new Date() }).where(eq(adNetworks.id, id)).returning();
-    return network;
-  }
-
-  async deleteAdNetwork(id: string): Promise<void> {
-    await db.delete(adNetworks).where(eq(adNetworks.id, id));
-  }
-
-  // Custom Banners
-  async getCustomBanners(): Promise<CustomBanner[]> {
-    return await db.select().from(customBanners).orderBy(desc(customBanners.createdAt));
-  }
-
-  async getCustomBanner(id: string): Promise<CustomBanner | undefined> {
-    const [banner] = await db.select().from(customBanners).where(eq(customBanners.id, id));
-    return banner || undefined;
-  }
-
-  async getActiveBanners(position?: string): Promise<CustomBanner[]> {
-    const conditions = [
-      eq(customBanners.active, true),
-      or(
-        isNull(customBanners.startDate),
-        sql`${customBanners.startDate} <= NOW()`
+  async getAdsBySlot(slot: string): Promise<Ad[]> {
+    return await db.select().from(ads)
+      .where(
+        and(
+          eq(ads.enabled, true),
+          sql`${slot} = ANY(${ads.slots})`
+        )
       )
-    ];
-
-    if (position) {
-      conditions.push(sql`${position} = ANY(${customBanners.positions})`);
-    }
-
-    return await db.select().from(customBanners).where(and(...conditions));
+      .orderBy(ads.networkName);
   }
 
-  async createCustomBanner(banner: InsertCustomBanner): Promise<CustomBanner> {
-    const [newBanner] = await db.insert(customBanners).values(banner).returning();
-    return newBanner;
+  async getEnabledAds(): Promise<Ad[]> {
+    return await db.select().from(ads).where(eq(ads.enabled, true));
   }
 
-  async updateCustomBanner(id: string, updates: Partial<InsertCustomBanner>): Promise<CustomBanner> {
-    const [banner] = await db.update(customBanners).set({ ...updates, updatedAt: new Date() }).where(eq(customBanners.id, id)).returning();
-    return banner;
+  async createAd(ad: InsertAd): Promise<Ad> {
+    const [newAd] = await db.insert(ads).values(ad).returning();
+    return newAd;
   }
 
-  async deleteCustomBanner(id: string): Promise<void> {
-    await db.delete(customBanners).where(eq(customBanners.id, id));
+  async updateAd(id: number, updates: Partial<InsertAd>): Promise<Ad> {
+    const [ad] = await db.update(ads).set(updates).where(eq(ads.id, id)).returning();
+    return ad;
   }
 
-  async incrementBannerImpressions(id: string): Promise<void> {
-    await db.update(customBanners)
-      .set({ impressions: sql`impressions + 1` })
-      .where(eq(customBanners.id, id));
-  }
-
-  async incrementBannerClicks(id: string): Promise<void> {
-    await db.update(customBanners)
-      .set({ clicks: sql`clicks + 1` })
-      .where(eq(customBanners.id, id));
+  async deleteAd(id: number): Promise<void> {
+    await db.delete(ads).where(eq(ads.id, id));
   }
 
   // Site Settings
